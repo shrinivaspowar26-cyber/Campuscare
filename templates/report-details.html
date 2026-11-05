@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Report Details - Campus Care</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+
+  <div class="app-layout">
+    
+    <div id="app-sidebar"></div>
+
+    <div class="app-main">
+      
+      <div id="app-header"></div>
+
+      <main class="page-content">
+
+        <!-- Top Navigation Bar -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <a href="javascript:history.back()" style="font-size: 13px; color: var(--text-muted); display: inline-flex; align-items: center; gap: 4px;">
+            &larr; Back to previous list
+          </a>
+          <div id="admin-quick-jump" style="display: none; display: flex; gap: 8px;">
+            <button type="button" class="btn btn-danger btn-sm" id="btn-admin-delete-report">
+              🗑️ Remove Report
+            </button>
+            <a href="/admin-issues" class="btn btn-secondary btn-sm">Open in Admin Issue Manager</a>
+          </div>
+        </div>
+
+        <div id="details-loading" style="text-align: center; padding: 60px; color: var(--text-muted);">
+          Loading ticket details...
+        </div>
+
+        <div id="details-content" style="display: none;">
+          
+          <!-- Ticket Header Banner -->
+          <div class="card" style="margin-bottom: 24px;">
+            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 16px;">
+              <div>
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+                  <span class="ticket-id" style="font-size: 16px;" id="dt-id">CC-2026-XXXX</span>
+                  <span id="dt-status-badge"></span>
+                  <span id="dt-priority-badge"></span>
+                  <span id="dt-text-flag-badge"></span>
+                </div>
+                <h2 style="font-size: 20px; font-weight: 700; color: var(--primary-navy);" id="dt-title">Problem Title</h2>
+                <div id="dt-text-flag-banner" style="display: none; margin-top: 8px; margin-bottom: 8px; background: #FEF2F2; border: 1px solid #FECACA; border-radius: 6px; padding: 10px 14px; font-size: 12.5px; color: #991B1B;"></div>
+                <div class="metadata-line" style="margin-top: 6px;">
+                  <span id="dt-category">Category</span>
+                  <span class="metadata-separator">·</span>
+                  <span id="dt-location">Location</span>
+                  <span class="metadata-separator">·</span>
+                  <span id="dt-created">Date</span>
+                </div>
+              </div>
+
+              <div style="background-color: #F8FAFC; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px 16px; min-width: 220px;">
+                <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Assigned Maintenance Team</div>
+                <div style="font-size: 13.5px; font-weight: 700; color: var(--primary-navy); margin-top: 2px;" id="dt-team">
+                  Unassigned
+                </div>
+                <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;" id="dt-reporter">
+                  Reported by: Student
+                </div>
+              </div>
+            </div>
+
+            <!-- Problem Description Box -->
+            <div style="margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--border-light);">
+              <h4 style="font-size: 13px; font-weight: 700; color: var(--primary-navy); margin-bottom: 6px;">Problem Description</h4>
+              <p style="font-size: 13.5px; color: #334155; line-height: 1.6;" id="dt-description"></p>
+            </div>
+          </div>
+
+          <!-- Site Photo & GPS Geotag Card -->
+          <div class="card" style="margin-bottom: 24px;">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">Live Geotagged Site Photo</h3>
+                <div class="card-subtitle">Authentic scene image and verified GPS coordinates</div>
+              </div>
+              <div id="dt-geotag-status"></div>
+            </div>
+            <div id="dt-photo-section">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+
+          <!-- 5-Stage Milestone Progress Tracker -->
+          <div class="card">
+            <h3 class="card-title" style="margin-bottom: 12px;">Resolution Progress</h3>
+            
+            <div class="workflow-timeline" id="workflow-timeline-container">
+              <!-- Visual Line -->
+              <div class="timeline-line">
+                <div class="timeline-line-progress" id="timeline-progress-fill" style="width: 0%;"></div>
+              </div>
+
+              <!-- Step 1: Reported -->
+              <div class="timeline-step" id="step-reported">
+                <div class="timeline-circle">1</div>
+                <div class="timeline-label">Reported</div>
+              </div>
+
+              <!-- Step 2: Assigned -->
+              <div class="timeline-step" id="step-assigned">
+                <div class="timeline-circle">2</div>
+                <div class="timeline-label">Assigned</div>
+              </div>
+
+              <!-- Step 3: In Progress -->
+              <div class="timeline-step" id="step-inprogress">
+                <div class="timeline-circle">3</div>
+                <div class="timeline-label">In Progress</div>
+              </div>
+
+              <!-- Step 4: Resolved -->
+              <div class="timeline-step" id="step-resolved">
+                <div class="timeline-circle">4</div>
+                <div class="timeline-label">Resolved</div>
+              </div>
+
+              <!-- Step 5: Closed -->
+              <div class="timeline-step" id="step-closed">
+                <div class="timeline-circle">5</div>
+                <div class="timeline-label">Closed</div>
+              </div>
+            </div>
+
+            <div style="font-size: 12px; color: var(--text-muted); text-align: center;">
+              Standard Campus Facilities Workflow: Reported &rarr; Assigned &rarr; In Progress &rarr; Resolved &rarr; Closed
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px;">
+            
+            <!-- Audit History Logs -->
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Status History & Audit Trail</h3>
+                  <div class="card-subtitle">Chronological record of status changes and technician notes</div>
+                </div>
+              </div>
+
+              <ul class="audit-list" id="audit-list-container">
+                <!-- Populated dynamically -->
+              </ul>
+            </div>
+
+            <!-- Student Feedback & Review Section -->
+            <div class="card" id="feedback-anchor">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Resolution Feedback</h3>
+                  <div class="card-subtitle">Student satisfaction rating & comments</div>
+                </div>
+              </div>
+
+              <!-- Case A: Locked because status is NOT Resolved or Closed -->
+              <div id="feedback-locked-box" style="display: none; background-color: #F8FAFC; border: 1px dashed var(--border-color); border-radius: var(--radius-sm); padding: 24px; text-align: center;">
+                <div style="font-size: 24px; margin-bottom: 8px;">🔒</div>
+                <div style="font-size: 14px; font-weight: 600; color: var(--primary-navy); margin-bottom: 4px;">
+                  Feedback Currently Unavailable
+                </div>
+                <p style="font-size: 12.5px; color: var(--text-muted); line-height: 1.5; max-width: 320px; margin: 0 auto;">
+                  Feedback is allowed only after this issue has been marked as <strong>Resolved</strong> or <strong>Closed</strong> by facilities maintenance.
+                </p>
+              </div>
+
+              <!-- Case B: Unlocked and Feedback can be submitted -->
+              <div id="feedback-submit-box" style="display: none;">
+                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+                  This issue has been marked as resolved! Please rate the repair quality and timeliness:
+                </p>
+
+                <form id="feedback-form">
+                  <div class="form-group">
+                    <label class="form-label">Satisfaction Rating <span class="required">*</span></label>
+                    <div class="star-rating" id="star-picker">
+                      <span class="star" data-rating="1">★</span>
+                      <span class="star" data-rating="2">★</span>
+                      <span class="star" data-rating="3">★</span>
+                      <span class="star" data-rating="4">★</span>
+                      <span class="star" data-rating="5">★</span>
+                    </div>
+                    <input type="hidden" id="selected-rating-val" value="5">
+                    <div id="rating-text-label" style="font-size: 12px; color: #D97706; font-weight: 600; margin-top: 4px;">5 - Excellent service</div>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="feedback-comments" class="form-label">Comments & Verification Notes</label>
+                    <textarea 
+                      id="feedback-comments" 
+                      class="form-control" 
+                      rows="3" 
+                      placeholder="e.g. The leak was completely stopped and the area is clean. Thank you!"
+                    ></textarea>
+                  </div>
+
+                  <button type="submit" class="btn btn-teal" style="width: 100%;" id="btn-submit-feedback">
+                    Submit Resolution Feedback
+                  </button>
+                </form>
+              </div>
+
+              <!-- Case C: Already Submitted Feedback Display -->
+              <div id="feedback-view-box" style="display: none;">
+                <div style="background-color: #F0FDFA; border: 1px solid #99F6E4; border-radius: var(--radius-sm); padding: 16px;">
+                  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                    <span style="font-size: 18px; color: #F59E0B;" id="fv-stars">★★★★★</span>
+                    <span style="font-size: 11.5px; color: #0F766E;" id="fv-date">Date</span>
+                  </div>
+                  <div style="font-size: 13px; color: #134E4A; line-height: 1.5;" id="fv-comments">
+                    No additional written comments.
+                  </div>
+                </div>
+                <div style="font-size: 12px; color: var(--text-muted); margin-top: 10px; text-align: center;">
+                  ✓ Feedback submitted and recorded in facilities audit log.
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </main>
+
+    </div>
+
+  </div>
+
+  <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/components.js') }}"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      // Look for ticket ID parameter
+      const urlParams = new URLSearchParams(window.location.search);
+      const ticketId = urlParams.get("id");
+
+      if (!ticketId) {
+        alert("No ticket ID specified.");
+        window.location.href = "/my-reports";
+        return;
+      }
+
+      await CampusCareUI.initPage("report-details", {
+        pageTitle: `Report Details: ${ticketId}`
+      });
+
+      const user = await CampusCareAPI.getCurrentUser();
+      if (!user) return;
+
+      if (user.role === "admin") {
+        const adminJump = document.getElementById("admin-quick-jump");
+        adminJump.style.display = "flex";
+        
+        const deleteBtn = document.getElementById("btn-admin-delete-report");
+        if (deleteBtn) {
+          deleteBtn.addEventListener("click", async () => {
+            if (!confirm(`Are you sure you want to permanently remove ticket ${ticketId}? This cannot be undone.`)) {
+              return;
+            }
+            deleteBtn.disabled = true;
+            deleteBtn.textContent = "Removing...";
+            try {
+              await CampusCareAPI.deleteReport(ticketId);
+              alert(`Report ${ticketId} has been successfully deleted.`);
+              window.location.href = "/admin-issues";
+            } catch (err) {
+              alert(err.message);
+              deleteBtn.disabled = false;
+              deleteBtn.textContent = "🗑️ Remove Report";
+            }
+          });
+        }
+      }
+
+      let currentReport = null;
+
+      async function loadReport() {
+        try {
+          currentReport = await CampusCareAPI.getReportById(ticketId);
+          renderReportDetails(currentReport);
+          document.getElementById("details-loading").style.display = "none";
+          document.getElementById("details-content").style.display = "block";
+        } catch (err) {
+          document.getElementById("details-loading").innerHTML = `
+            <div style="color: #DC2626; font-size: 16px; font-weight: 600;">Error Loading Report</div>
+            <p style="margin-top: 8px;">${err.message}</p>
+            <a href="javascript:history.back()" class="btn btn-secondary btn-sm" style="margin-top: 16px;">Go Back</a>
+          `;
+        }
+      }
+
+      function renderReportDetails(report) {
+        document.getElementById("dt-id").textContent = report.id;
+        document.getElementById("dt-title").textContent = report.title;
+        document.getElementById("dt-category").textContent = report.category;
+        document.getElementById("dt-location").textContent = `${report.location.building} · ${report.location.floor} (${report.location.roomArea})`;
+        document.getElementById("dt-created").textContent = `Reported on ${CampusCareUI.formatDate(report.createdAt)}`;
+        document.getElementById("dt-description").textContent = report.description;
+        document.getElementById("dt-team").textContent = report.assignedTeam || "Pending Team Assignment";
+        document.getElementById("dt-reporter").textContent = `Reported by: ${report.reportedBy ? report.reportedBy.name : "Student"}`;
+
+        document.getElementById("dt-status-badge").innerHTML = CampusCareUI.renderStatusBadge(report.status);
+        document.getElementById("dt-priority-badge").innerHTML = CampusCareUI.renderPriority(report.priority);
+
+        // Render Suspicious Text indicator
+        const textFlagBadge = document.getElementById("dt-text-flag-badge");
+        const textFlagBanner = document.getElementById("dt-text-flag-banner");
+        if (report.textFlagged) {
+          textFlagBadge.innerHTML = `<span style="font-size: 11px; font-weight: 700; background: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; border-radius: 4px; padding: 2px 7px;">⚠️ Suspicious text</span>`;
+          if (currentUser && currentUser.role === "admin") {
+            textFlagBanner.innerHTML = `<strong>⚠️ Administrative Flag:</strong> Suspicious text detected. Reason: ${report.textFlagReason || "Automated text quality check failed."}`;
+            textFlagBanner.style.display = "block";
+          } else {
+            textFlagBanner.style.display = "none";
+          }
+        } else {
+          textFlagBadge.innerHTML = "";
+          textFlagBanner.style.display = "none";
+        }
+
+        // Render Live Geotagged Site Photo & GPS Section
+        const photoSection = document.getElementById("dt-photo-section");
+        const geotagStatus = document.getElementById("dt-geotag-status");
+
+        const hasLocation = report.latitude !== null && report.latitude !== undefined &&
+                            report.longitude !== null && report.longitude !== undefined;
+
+        if (hasLocation && report.imageUrl) {
+          geotagStatus.innerHTML = `<span style="font-size: 11.5px; font-weight: 700; background: #ECFDF5; color: #047857; border: 1px solid #A7F3D0; border-radius: 4px; padding: 3px 8px;">📍 Verified Geotag</span>`;
+          photoSection.innerHTML = `
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; align-items: start;">
+              <div style="background: #0F172A; border-radius: 8px; overflow: hidden; text-align: center; border: 1px solid var(--border-color);">
+                <img src="${report.imageUrl}" alt="Site Photo" style="width: 100%; max-height: 400px; object-fit: contain; display: block;" onerror="this.onerror=null; this.parentElement.innerHTML='<div style=\'padding:40px;color:#94A3B8;font-size:13px;\'>Photo preview unavailable</div>'">
+              </div>
+              <div style="background: #F8FAFC; border: 1px solid var(--border-color); border-radius: 6px; padding: 18px;">
+                <h4 style="font-size: 13px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; margin-bottom: 12px; letter-spacing: 0.5px;">Geotag Information</h4>
+                <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13.5px;">
+                  <div>
+                    <span style="color: var(--text-muted); font-size: 12px; display: block; margin-bottom: 2px;">GPS Coordinates:</span>
+                    <span style="font-weight: 700; color: var(--primary-navy); font-family: monospace; font-size: 14px;">${Number(report.latitude).toFixed(6)}°, ${Number(report.longitude).toFixed(6)}°</span>
+                  </div>
+                  <div>
+                    <span style="color: var(--text-muted); font-size: 12px; display: block; margin-bottom: 2px;">Accuracy:</span>
+                    <span style="font-weight: 600; color: #0D9488;">±${Number(report.locationAccuracy || 0).toFixed(1)} meters</span>
+                  </div>
+                  <div>
+                    <span style="color: var(--text-muted); font-size: 12px; display: block; margin-bottom: 2px;">Captured Timestamp (Server-verified):</span>
+                    <span style="font-weight: 500; color: #334155;">${CampusCareUI.formatDateTime(report.photoCapturedAt || report.createdAt)}</span>
+                  </div>
+                  <div style="margin-top: 6px; padding-top: 14px; border-top: 1px solid var(--border-light);">
+                    <a href="https://www.google.com/maps?q=${encodeURIComponent(report.latitude)},${encodeURIComponent(report.longitude)}" target="_blank" rel="noopener noreferrer" class="btn btn-teal btn-sm" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 600;">
+                      📍 Open in Maps ↗
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+        } else if (report.imageUrl) {
+          geotagStatus.innerHTML = `<span style="font-size: 12px; color: var(--text-muted);">No location attached</span>`;
+          photoSection.innerHTML = `
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <div style="background: #0F172A; border-radius: 8px; overflow: hidden; text-align: center; max-width: 480px;">
+                <img src="${report.imageUrl}" alt="Site Photo" style="width: 100%; max-height: 340px; object-fit: contain; display: block;">
+              </div>
+              <div style="font-size: 13px; color: var(--text-muted);">No location attached</div>
+            </div>
+          `;
+        } else {
+          geotagStatus.innerHTML = `<span style="font-size: 12px; color: var(--text-muted);">No location attached</span>`;
+          photoSection.innerHTML = `
+            <div style="background: #F8FAFC; border: 1px dashed var(--border-color); border-radius: 6px; padding: 24px; text-align: center; color: var(--text-muted); font-size: 13px;">
+              No location attached
+            </div>
+          `;
+        }
+
+        // Update 5-Step Timeline
+        updateTimeline(report.status);
+
+        // Update Audit List
+        renderAuditList(report.history);
+
+        // Update Feedback Box
+        renderFeedbackSection(report);
+      }
+
+      function updateTimeline(status) {
+        const stages = ["Reported", "Assigned", "In Progress", "Resolved", "Closed"];
+        const currentIndex = stages.indexOf(status);
+
+        const stepIds = [
+          "step-reported",
+          "step-assigned",
+          "step-inprogress",
+          "step-resolved",
+          "step-closed"
+        ];
+
+        stepIds.forEach((id, index) => {
+          const el = document.getElementById(id);
+          el.className = "timeline-step";
+
+          if (index < currentIndex) {
+            el.classList.add("completed");
+            el.querySelector(".timeline-circle").innerHTML = "✓";
+          } else if (index === currentIndex) {
+            el.classList.add("active");
+            el.querySelector(".timeline-circle").innerHTML = (index + 1);
+          } else {
+            el.querySelector(".timeline-circle").innerHTML = (index + 1);
+          }
+        });
+
+        // Fill progress line width
+        const fillEl = document.getElementById("timeline-progress-fill");
+        if (currentIndex <= 0) fillEl.style.width = "0%";
+        else if (currentIndex === 1) fillEl.style.width = "25%";
+        else if (currentIndex === 2) fillEl.style.width = "50%";
+        else if (currentIndex === 3) fillEl.style.width = "75%";
+        else if (currentIndex === 4) fillEl.style.width = "100%";
+      }
+
+      function renderAuditList(historyLogs) {
+        const container = document.getElementById("audit-list-container");
+        if (!historyLogs || historyLogs.length === 0) {
+          container.innerHTML = `<li style="font-size: 13px; color: var(--text-muted);">No history recorded yet.</li>`;
+          return;
+        }
+
+        // Show latest at the top
+        const reversed = [...historyLogs].reverse();
+        container.innerHTML = reversed.map(item => `
+          <li class="audit-item">
+            <div class="audit-dot"></div>
+            <div class="audit-header">${item.status}</div>
+            <div class="audit-time">
+              ${CampusCareUI.formatDateTime(item.timestamp)} · ${item.updatedBy || 'Staff'}
+            </div>
+            ${item.note ? `<div class="audit-note">${item.note}</div>` : ''}
+          </li>
+        `).join("");
+      }
+
+      function renderFeedbackSection(report) {
+        const lockedBox = document.getElementById("feedback-locked-box");
+        const submitBox = document.getElementById("feedback-submit-box");
+        const viewBox = document.getElementById("feedback-view-box");
+
+        // Strict Requirement #6: Feedback is allowed only after an issue reaches Resolved or Closed.
+        const isEligible = report.status === "Resolved" || report.status === "Closed";
+
+        if (!isEligible) {
+          lockedBox.style.display = "block";
+          submitBox.style.display = "none";
+          viewBox.style.display = "none";
+        } else if (report.feedback) {
+          lockedBox.style.display = "none";
+          submitBox.style.display = "none";
+          viewBox.style.display = "block";
+
+          const stars = "★".repeat(report.feedback.rating) + "☆".repeat(5 - report.feedback.rating);
+          document.getElementById("fv-stars").textContent = stars + ` (${report.feedback.rating}/5)`;
+          document.getElementById("fv-date").textContent = `Submitted ${CampusCareUI.formatDate(report.feedback.submittedAt)}`;
+          document.getElementById("fv-comments").textContent = report.feedback.comments || "No additional written comments.";
+        } else {
+          lockedBox.style.display = "none";
+          submitBox.style.display = "block";
+          viewBox.style.display = "none";
+          setupStarRating();
+        }
+      }
+
+      // Star picker interactive handlers
+      function setupStarRating() {
+        const stars = document.querySelectorAll("#star-picker .star");
+        const ratingInput = document.getElementById("selected-rating-val");
+        const ratingLabel = document.getElementById("rating-text-label");
+
+        const descriptions = {
+          1: "1 - Poor resolution",
+          2: "2 - Subpar service",
+          3: "3 - Acceptable / Average",
+          4: "4 - Good resolution",
+          5: "5 - Excellent service"
+        };
+
+        function setStars(val) {
+          stars.forEach(s => {
+            const r = parseInt(s.dataset.rating, 10);
+            if (r <= val) s.classList.add("selected");
+            else s.classList.remove("selected");
+          });
+          ratingInput.value = val;
+          ratingLabel.textContent = descriptions[val] || `${val} Stars`;
+        }
+
+        setStars(5); // Default 5
+
+        stars.forEach(s => {
+          s.addEventListener("click", () => {
+            setStars(parseInt(s.dataset.rating, 10));
+          });
+        });
+      }
+
+      // Feedback form submission handler
+      const feedbackForm = document.getElementById("feedback-form");
+      if (feedbackForm) {
+        feedbackForm.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const rating = parseInt(document.getElementById("selected-rating-val").value, 10);
+          const comments = document.getElementById("feedback-comments").value;
+
+          try {
+            await CampusCareAPI.submitFeedback(ticketId, { rating, comments });
+            CampusCareUI.toast("Thank you! Your resolution feedback was submitted.", "success");
+            await loadReport(); // Reload view
+          } catch (err) {
+            CampusCareUI.toast(err.message, "error");
+          }
+        });
+      }
+
+      // Initial load
+      await loadReport();
+    });
+  </script>
+</body>
+</html>

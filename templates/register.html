@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register - Campus Care</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body class="auth-wrapper">
+
+  <div class="auth-card" style="max-width: 500px;">
+    
+    <div class="auth-header">
+      <div class="auth-brand-lockup">
+        <div class="brand-icon">CC</div>
+        <span class="brand-name" style="color: var(--primary-navy); font-size: 20px;">Campus Care</span>
+      </div>
+      <h2 class="auth-title">Create Account</h2>
+      <p class="auth-desc">Register for Student & Staff issue reporting</p>
+    </div>
+
+    <div id="register-alert" style="display: none; padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 16px;"></div>
+
+    <form id="register-form">
+      
+      <div class="form-group">
+        <label class="form-label">I am registering as: <span class="required">*</span></label>
+        <div style="display: flex; gap: 18px; margin-top: 6px;">
+          <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer;">
+            <input type="radio" name="roleType" value="student" checked> Student
+          </label>
+          <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer;">
+            <input type="radio" name="roleType" value="staff"> Faculty / Staff Member
+          </label>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="reg-name" class="form-label">Full Name <span class="required">*</span></label>
+          <input type="text" id="reg-name" class="form-control" placeholder="e.g. Maya Patel" required>
+        </div>
+
+        <div class="form-group">
+          <label for="reg-identifier" class="form-label" id="lbl-identifier">Student Roll No. <span class="required">*</span></label>
+          <input type="text" id="reg-identifier" class="form-control" placeholder="e.g. CS2024-089" required>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="reg-email" class="form-label">University Email <span class="required">*</span></label>
+        <input type="email" id="reg-email" class="form-control" placeholder="maya.patel@campus.edu" required>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="reg-dept" class="form-label">Department / School <span class="required">*</span></label>
+          <input type="text" id="reg-dept" class="form-control" placeholder="e.g. Mechanical Engineering" required>
+        </div>
+
+        <div class="form-group">
+          <label for="reg-phone" class="form-label">Phone Number <span class="required">*</span></label>
+          <input type="tel" id="reg-phone" class="form-control" placeholder="+1 (555) 000-0000" required>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="reg-password" class="form-label">Password <span class="required">*</span></label>
+          <input type="password" id="reg-password" class="form-control" minlength="6" placeholder="At least 6 characters" required>
+        </div>
+
+        <div class="form-group">
+          <label for="reg-confirm" class="form-label">Confirm Password <span class="required">*</span></label>
+          <input type="password" id="reg-confirm" class="form-control" minlength="6" placeholder="Repeat password" required>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">
+        Complete Registration
+      </button>
+    </form>
+
+    <div style="text-align: center; margin-top: 20px; font-size: 13px; color: var(--text-muted);">
+      Already have an account? <a href="/login" style="font-weight: 600; color: var(--teal-accent);">Sign in</a>
+    </div>
+
+  </div>
+
+  <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+  <script>
+    const alertBox = document.getElementById("register-alert");
+    const roleRadios = document.querySelectorAll('input[name="roleType"]');
+    const lblIdentifier = document.getElementById("lbl-identifier");
+
+    roleRadios.forEach(radio => {
+      radio.addEventListener("change", (e) => {
+        if (e.target.value === "staff") {
+          lblIdentifier.innerHTML = 'Faculty / Employee ID <span class="required">*</span>';
+        } else {
+          lblIdentifier.innerHTML = 'Student Roll No. <span class="required">*</span>';
+        }
+      });
+    });
+
+    function showAlert(msg, isError = true) {
+      alertBox.textContent = msg;
+      alertBox.style.display = "block";
+      if (isError) {
+        alertBox.style.backgroundColor = "var(--danger-bg)";
+        alertBox.style.color = "var(--danger-text)";
+        alertBox.style.border = "1px solid var(--danger-border)";
+      } else {
+        alertBox.style.backgroundColor = "var(--teal-light)";
+        alertBox.style.color = "var(--teal-accent-hover)";
+        alertBox.style.border = "1px solid var(--teal-border)";
+      }
+    }
+
+    document.getElementById("register-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      
+      const pwd = document.getElementById("reg-password").value;
+      const confirmPwd = document.getElementById("reg-confirm").value;
+
+      if (pwd !== confirmPwd) {
+        showAlert("Passwords do not match. Please verify both fields.");
+        return;
+      }
+
+      const selectedRoleType = document.querySelector('input[name="roleType"]:checked').value;
+
+      const payload = {
+        name: document.getElementById("reg-name").value,
+        email: document.getElementById("reg-email").value,
+        identifier: document.getElementById("reg-identifier").value,
+        department: document.getElementById("reg-dept").value,
+        phone: document.getElementById("reg-phone").value,
+        password: pwd,
+        roleType: selectedRoleType
+      };
+
+      try {
+        const newUser = await CampusCareAPI.register(payload);
+        showAlert(`Registration successful! Welcome, ${newUser.name}. Redirecting to dashboard...`, false);
+        setTimeout(() => {
+          window.location.href = "/student-dashboard";
+        }, 800);
+      } catch (err) {
+        showAlert(err.message, true);
+      }
+    });
+  </script>
+</body>
+</html>

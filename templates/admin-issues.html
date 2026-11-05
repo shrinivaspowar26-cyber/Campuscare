@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Issue Management - Campus Care</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+
+  <div class="app-layout">
+    
+    <div id="app-sidebar"></div>
+
+    <div class="app-main">
+      
+      <div id="app-header"></div>
+
+      <main class="page-content">
+
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px; margin-bottom: 20px;">
+          <div>
+            <h2 style="font-size: 22px; font-weight: 700; color: var(--primary-navy);">Campus Issue Management</h2>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">
+              Assign maintenance teams, update workflow statuses, and monitor resolution timelines
+            </p>
+          </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+          
+          <div class="filter-group" style="flex: 1; min-width: 250px;">
+            <input 
+              type="text" 
+              id="admin-search" 
+              class="form-control filter-input" 
+              placeholder="Search by ticket ID, title, building, or student name..."
+            >
+          </div>
+
+          <div class="filter-group">
+            
+            <select id="admin-cat-filter" class="form-control" style="width: auto; min-width: 150px;">
+              <option value="All">All Categories</option>
+            </select>
+
+            <select id="admin-status-filter" class="form-control" style="width: auto; min-width: 140px;">
+              <option value="All">All Statuses</option>
+              <option value="Reported">Reported</option>
+              <option value="Assigned">Assigned</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Resolved">Resolved</option>
+              <option value="Closed">Closed</option>
+              <option value="Rejected">Rejected</option>
+            </select>
+
+            <select id="admin-priority-filter" class="form-control" style="width: auto; min-width: 130px;">
+              <option value="All">All Priorities</option>
+              <option value="urgent">Urgent</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+
+            <select id="admin-trust-filter" class="form-control" style="width: auto; min-width: 140px;">
+              <option value="All">All Trust Levels</option>
+              <option value="high">High Trust</option>
+              <option value="low">Low Trust (Flagged)</option>
+            </select>
+
+            <button id="btn-admin-reset-filters" class="btn btn-secondary btn-sm">
+              Clear
+            </button>
+
+          </div>
+
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; color: var(--text-muted); margin-bottom: 12px;">
+          <span id="admin-count-label">Loading issues...</span>
+          <span>Workflow: Reported &rarr; Assigned &rarr; In Progress &rarr; Resolved &rarr; Closed</span>
+        </div>
+
+        <!-- Master Table Card -->
+        <div class="card" style="padding: 0; overflow: hidden;">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Ticket ID</th>
+                  <th>Title & Category</th>
+                  <th>Location</th>
+                  <th>Priority</th>
+                  <th>Reported By</th>
+                  <th>Assigned Team</th>
+                  <th>Status</th>
+                  <th style="text-align: right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="admin-issues-tbody">
+                <tr>
+                  <td colspan="8" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                    Loading issue records...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </main>
+
+    </div>
+
+  </div>
+
+  <!-- Issue Assignment & Status Control Modal -->
+  <div class="modal-backdrop" id="manage-issue-modal">
+    <div class="modal-box">
+      
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-ticket-id">Manage Issue</h3>
+        <button type="button" class="modal-close" id="modal-close-btn">&times;</button>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <h4 style="font-size: 14px; font-weight: 700; color: var(--primary-navy);" id="modal-title-text"></h4>
+        <div class="metadata-line" style="margin-top: 4px;">
+          <span id="modal-meta-category"></span>
+          <span class="metadata-separator">·</span>
+          <span id="modal-meta-location"></span>
+        </div>
+      </div>
+
+      <!-- Suspicious Text Flag Alert in Modal -->
+      <div id="modal-text-flag-container" style="display: none; margin-bottom: 14px;"></div>
+
+      <!-- Geotagged Site Photo Section in Modal -->
+      <div id="modal-geotag-container" style="margin-bottom: 16px;"></div>
+
+      <form id="manage-issue-form">
+        <input type="hidden" id="modal-target-id">
+
+        <!-- Maintenance Team Assignment -->
+        <div class="form-group">
+          <label for="modal-team-select" class="form-label">
+            Assign Maintenance Team
+          </label>
+          <select id="modal-team-select" class="form-control">
+            <option value="">-- Keep Unassigned --</option>
+            <!-- Populated dynamically -->
+          </select>
+          <div class="form-hint">Dispatches this ticket to the relevant campus maintenance crew.</div>
+        </div>
+
+        <!-- Workflow Status Transition -->
+        <div class="form-group">
+          <label for="modal-status-select" class="form-label">
+            Workflow Status <span class="required">*</span>
+          </label>
+          <select id="modal-status-select" class="form-control" required>
+            <option value="Reported">1. Reported (Awaiting triage)</option>
+            <option value="Assigned">2. Assigned (Team dispatched)</option>
+            <option value="In Progress">3. In Progress (Active repair)</option>
+            <option value="Resolved">4. Resolved (Work completed)</option>
+            <option value="Closed">5. Closed (Verified & complete)</option>
+            <option value="Rejected">6. Rejected (Invalid or out of scope)</option>
+          </select>
+          <div class="form-hint">Strict 5-stage university facilities workflow.</div>
+        </div>
+
+        <!-- Operational Note -->
+        <div class="form-group">
+          <label for="modal-note" class="form-label">
+            Operational Note / Technician Remark
+          </label>
+          <textarea 
+            id="modal-note" 
+            class="form-control" 
+            rows="3" 
+            placeholder="e.g. Electrician scheduled for 2:00 PM; replacement ballasts ordered."
+          ></textarea>
+          <div class="form-hint">Recorded in the ticket's public audit history.</div>
+        </div>
+
+        <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+          <button type="button" class="btn btn-danger btn-sm" id="modal-delete-btn">
+            🗑️ Remove Report
+          </button>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="btn btn-secondary" id="modal-cancel-btn">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="modal-save-btn">Save Changes</button>
+          </div>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/components.js') }}"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      await CampusCareUI.initPage("admin-issues", {
+        pageTitle: "Issue Triage & Team Assignment",
+        requiredRole: "admin"
+      });
+
+      const user = await CampusCareAPI.getCurrentUser();
+      if (!user) return;
+
+      // Populate Categories filter
+      const categories = await CampusCareAPI.getCategories();
+      const catSelect = document.getElementById("admin-cat-filter");
+      categories.forEach(cat => {
+        const opt = document.createElement("option");
+        opt.value = cat;
+        opt.textContent = cat;
+        catSelect.appendChild(opt);
+      });
+
+      // Populate Teams in modal
+      const teams = await CampusCareAPI.getMaintenanceTeams();
+      const modalTeamSelect = document.getElementById("modal-team-select");
+      teams.forEach(team => {
+        const opt = document.createElement("option");
+        opt.value = team;
+        opt.textContent = team;
+        modalTeamSelect.appendChild(opt);
+      });
+
+      const searchInput = document.getElementById("admin-search");
+      const statusSelect = document.getElementById("admin-status-filter");
+      const prioritySelect = document.getElementById("admin-priority-filter");
+      const trustSelect = document.getElementById("admin-trust-filter");
+      const clearBtn = document.getElementById("btn-admin-reset-filters");
+      const tbody = document.getElementById("admin-issues-tbody");
+      const countLabel = document.getElementById("admin-count-label");
+
+      // Modal Elements
+      const modal = document.getElementById("manage-issue-modal");
+      const modalCloseBtn = document.getElementById("modal-close-btn");
+      const modalCancelBtn = document.getElementById("modal-cancel-btn");
+      const modalDeleteBtn = document.getElementById("modal-delete-btn");
+      const manageForm = document.getElementById("manage-issue-form");
+
+      let allCurrentReports = [];
+
+      async function loadAdminIssues() {
+        const filters = {
+          search: searchInput.value,
+          category: catSelect.value,
+          status: statusSelect.value,
+          priority: prioritySelect.value
+        };
+
+        allCurrentReports = await CampusCareAPI.getReports(filters);
+
+        // Apply trust level filter in client if selected
+        if (trustSelect && trustSelect.value !== "All") {
+          allCurrentReports = allCurrentReports.filter(r => (r.trustLevel || "high").toLowerCase() === trustSelect.value.toLowerCase());
+        }
+
+        countLabel.textContent = `Displaying ${allCurrentReports.length} total issue report${allCurrentReports.length === 1 ? '' : 's'}`;
+
+        if (allCurrentReports.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="8">
+                <div class="empty-state">
+                  <div class="empty-icon">📂</div>
+                  <div class="empty-title">No issues found</div>
+                  <p style="font-size: 13px; margin-bottom: 12px;">No campus reports match the active filter criteria.</p>
+                  <button id="admin-empty-clear-btn" class="btn btn-secondary btn-sm">Reset Filters</button>
+                </div>
+              </td>
+            </tr>
+          `;
+          const emptyClear = document.getElementById("admin-empty-clear-btn");
+          if (emptyClear) emptyClear.addEventListener("click", resetFilters);
+          return;
+        }
+
+        tbody.innerHTML = allCurrentReports.map(r => `
+          <tr>
+            <td class="ticket-id">${r.id}</td>
+            <td>
+              <div style="font-weight: 600; color: var(--primary-navy); max-width: 240px;">${r.title}</div>
+              <div class="metadata-line">
+                <span>${r.category}</span>
+              </div>
+              ${r.textFlagged 
+                ? `<div style="margin-top: 3px;"><span style="display: inline-flex; align-items: center; gap: 3px; font-size: 10px; font-weight: 700; background: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; border-radius: 3px; padding: 1px 5px;" title="${(r.textFlagReason || 'Suspicious text').replace(/"/g, '&quot;')}">⚠️ Suspicious text</span></div>` 
+                : ''}
+            </td>
+            <td>
+              <div style="font-size: 13px;">${r.location.building}</div>
+              <div style="font-size: 11.5px; color: var(--text-muted);">${r.location.floor}, ${r.location.roomArea}</div>
+              ${r.latitude !== null && r.latitude !== undefined && r.longitude !== null && r.longitude !== undefined 
+                ? `<div style="margin-top: 3px;"><span style="display: inline-flex; align-items: center; gap: 3px; font-size: 10.5px; font-weight: 600; background: #ECFDF5; color: #047857; border: 1px solid #A7F3D0; border-radius: 3px; padding: 1px 5px;">📍 Geotagged</span></div>` 
+                : ''}
+            </td>
+            <td>${CampusCareUI.renderPriority(r.priority)}</td>
+            <td>
+              <div style="font-size: 13px; font-weight: 500;">${r.reportedBy ? r.reportedBy.name : "Student"}</div>
+              <div style="font-size: 11.5px; color: var(--text-muted);">${r.reportedBy ? r.reportedBy.email : ""}</div>
+            </td>
+            <td>
+              ${r.assignedTeam 
+                ? `<span style="font-size: 12.5px; font-weight: 600; color: var(--primary-navy);">${r.assignedTeam}</span>` 
+                : `<span style="color: #DC2626; font-size: 12px; font-weight: 600;">⚠️ Unassigned</span>`}
+            </td>
+            <td>${CampusCareUI.renderStatusBadge(r.status)}</td>
+            <td style="text-align: right; white-space: nowrap;">
+              <button class="btn btn-primary btn-sm btn-open-manage" data-id="${r.id}">
+                Assign / Status
+              </button>
+              <a href="/report-details?id=${r.id}" class="btn btn-secondary btn-sm" title="View details & audit trail">
+                Details &rarr;
+              </a>
+            </td>
+          </tr>
+        `).join("");
+
+        // Attach modal trigger listeners
+        document.querySelectorAll(".btn-open-manage").forEach(btn => {
+          btn.addEventListener("click", () => {
+            openManageModal(btn.dataset.id);
+          });
+        });
+      }
+
+      function openManageModal(id) {
+        const report = allCurrentReports.find(r => r.id === id);
+        if (!report) return;
+
+        document.getElementById("modal-target-id").value = report.id;
+        document.getElementById("modal-ticket-id").textContent = `Manage Issue: ${report.id}`;
+        document.getElementById("modal-title-text").textContent = report.title;
+        document.getElementById("modal-meta-category").textContent = report.category;
+        document.getElementById("modal-meta-location").textContent = `${report.location.building} · ${report.location.roomArea}`;
+
+        // Render Suspicious Text Flag Alert in Modal
+        const textFlagBox = document.getElementById("modal-text-flag-container");
+        if (report.textFlagged) {
+          textFlagBox.innerHTML = `
+            <div style="background: #FEF2F2; border: 1px solid #FECACA; border-radius: 6px; padding: 10px 14px; font-size: 12.5px; color: #991B1B;">
+              <div style="font-weight: 700; display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
+                <span>⚠️ Suspicious Text Detected</span>
+                <span style="font-size: 10px; font-weight: 700; background: #DC2626; color: white; padding: 1px 6px; border-radius: 3px;">Low Trust</span>
+              </div>
+              <div style="color: #7F1D1D; font-size: 12px;"><strong>Reason:</strong> ${report.textFlagReason || "Text flagged by automated quality validation."}</div>
+            </div>
+          `;
+          textFlagBox.style.display = "block";
+        } else {
+          textFlagBox.innerHTML = "";
+          textFlagBox.style.display = "none";
+        }
+
+        // Render Geotagged Site Photo Section in Modal
+        const geotagBox = document.getElementById("modal-geotag-container");
+        const hasLocation = report.latitude !== null && report.latitude !== undefined &&
+                            report.longitude !== null && report.longitude !== undefined;
+
+        if (hasLocation && report.imageUrl) {
+          geotagBox.innerHTML = `
+            <div style="background: #F8FAFC; border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; font-size: 12.5px;">
+              <div style="display: flex; gap: 14px; align-items: flex-start;">
+                <div style="background: #0F172A; border-radius: 4px; overflow: hidden; width: 90px; height: 90px; flex-shrink: 0; border: 1px solid var(--border-color); text-align: center;">
+                  <img src="${report.imageUrl}" alt="Site Photo" style="width: 100%; height: 100%; object-fit: cover; display: block;" onerror="this.onerror=null; this.parentElement.innerHTML='<span style=\\'font-size:10px;color:#94A3B8;line-height:90px;\\'>No Preview</span>'">
+                </div>
+                <div style="flex: 1; min-width: 0;">
+                  <div style="font-weight: 700; color: var(--primary-navy); margin-bottom: 3px; display: flex; align-items: center; gap: 6px;">
+                    <span>📍 Verified Site Photo</span>
+                    <span style="font-size: 10.5px; font-weight: 600; color: #0D9488; background: #E6FFFA; padding: 1px 4px; border-radius: 3px; border: 1px solid #B2F5EA;">±${Number(report.locationAccuracy || 0).toFixed(1)}m</span>
+                  </div>
+                  <div style="color: #334155; font-family: monospace; font-size: 12px;">${Number(report.latitude).toFixed(6)}°, ${Number(report.longitude).toFixed(6)}°</div>
+                  <div style="color: var(--text-muted); font-size: 11px; margin-top: 2px;">Captured: ${CampusCareUI.formatDateTime(report.photoCapturedAt || report.createdAt)}</div>
+                  <div style="margin-top: 6px;">
+                    <a href="https://www.google.com/maps?q=${encodeURIComponent(report.latitude)},${encodeURIComponent(report.longitude)}" target="_blank" rel="noopener noreferrer" style="font-size: 12px; font-weight: 600; color: #0D9488; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+                      Open in Maps ↗
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+        } else if (report.imageUrl) {
+          geotagBox.innerHTML = `
+            <div style="background: #F8FAFC; border: 1px solid var(--border-color); border-radius: 6px; padding: 10px 12px; font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 10px;">
+              <img src="${report.imageUrl}" alt="Photo" style="width: 48px; height: 48px; object-fit: cover; border-radius: 4px;">
+              <span>No location attached</span>
+            </div>
+          `;
+        } else {
+          geotagBox.innerHTML = `
+            <div style="background: #F8FAFC; border: 1px dashed var(--border-color); border-radius: 6px; padding: 8px 12px; font-size: 12px; color: var(--text-muted);">
+              No location attached
+            </div>
+          `;
+        }
+
+        modalTeamSelect.value = report.assignedTeam || "";
+        document.getElementById("modal-status-select").value = report.status;
+        document.getElementById("modal-note").value = "";
+
+        modal.classList.add("open");
+      }
+
+      function closeModal() {
+        modal.classList.remove("open");
+      }
+
+      modalCloseBtn.addEventListener("click", closeModal);
+      modalCancelBtn.addEventListener("click", closeModal);
+      modal.addEventListener("click", (e) => {
+        if (e.target === modal) closeModal();
+      });
+
+      // Handle Modal Delete Button
+      modalDeleteBtn.addEventListener("click", async () => {
+        const id = document.getElementById("modal-target-id").value;
+        if (!confirm(`Are you sure you want to permanently remove report ${id}? This cannot be undone.`)) {
+          return;
+        }
+
+        modalDeleteBtn.disabled = true;
+        modalDeleteBtn.textContent = "Removing...";
+
+        try {
+          await CampusCareAPI.deleteReport(id);
+          CampusCareUI.toast(`Report ${id} has been removed.`, "success");
+          closeModal();
+          await loadAdminIssues();
+        } catch (err) {
+          CampusCareUI.toast(err.message, "error");
+        } finally {
+          modalDeleteBtn.disabled = false;
+          modalDeleteBtn.textContent = "🗑️ Remove Report";
+        }
+      });
+
+      // Handle Modal Form Submission (Assign Team & Update Status)
+      manageForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const id = document.getElementById("modal-target-id").value;
+        const newTeam = modalTeamSelect.value;
+        const newStatus = document.getElementById("modal-status-select").value;
+        const note = document.getElementById("modal-note").value;
+
+        const saveBtn = document.getElementById("modal-save-btn");
+        saveBtn.disabled = true;
+        saveBtn.textContent = "Updating...";
+
+        try {
+          // If team changed or selected
+          if (newTeam) {
+            await CampusCareAPI.assignMaintenanceTeam(id, newTeam, note);
+          }
+          // Update status if different
+          await CampusCareAPI.updateReportStatus(id, newStatus, note);
+
+          CampusCareUI.toast(`Issue ${id} successfully updated!`, "success");
+          closeModal();
+          await loadAdminIssues();
+        } catch (err) {
+          CampusCareUI.toast(err.message, "error");
+        } finally {
+          saveBtn.disabled = false;
+          saveBtn.textContent = "Save Changes";
+        }
+      });
+
+      function resetFilters() {
+        searchInput.value = "";
+        catSelect.value = "All";
+        statusSelect.value = "All";
+        prioritySelect.value = "All";
+        if (trustSelect) trustSelect.value = "All";
+        loadAdminIssues();
+      }
+
+      searchInput.addEventListener("input", loadAdminIssues);
+      catSelect.addEventListener("change", loadAdminIssues);
+      statusSelect.addEventListener("change", loadAdminIssues);
+      prioritySelect.addEventListener("change", loadAdminIssues);
+      if (trustSelect) trustSelect.addEventListener("change", loadAdminIssues);
+      clearBtn.addEventListener("click", resetFilters);
+
+      // Initial load
+      await loadAdminIssues();
+
+      // Check if URL parameter asked to open a specific ticket modal
+      const urlParams = new URLSearchParams(window.location.search);
+      const selectId = urlParams.get("selectId");
+      if (selectId) {
+        openManageModal(selectId);
+      }
+    });
+  </script>
+</body>
+</html>

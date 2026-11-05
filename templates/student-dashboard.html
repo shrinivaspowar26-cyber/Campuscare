@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Dashboard - Campus Care</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+
+  <div class="app-layout">
+    
+    <!-- Shared Sidebar container -->
+    <div id="app-sidebar"></div>
+
+    <div class="app-main">
+      
+      <!-- Shared Header container -->
+      <div id="app-header"></div>
+
+      <main class="page-content">
+
+        <!-- Welcome Banner & Quick Action -->
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 24px;">
+          <div>
+            <h2 style="font-size: 22px; font-weight: 700; color: var(--primary-navy);" id="welcome-title">Welcome, Student</h2>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 2px;" id="welcome-subtitle">
+              Manage and track your campus facility issue reports
+            </p>
+          </div>
+          <a href="/report-problem" class="btn btn-teal">
+            <span>+</span> Report New Problem
+          </a>
+        </div>
+
+        <!-- 4 Summary Stat Cards -->
+        <div class="stats-grid">
+          
+          <div class="stat-card">
+            <div>
+              <div class="stat-label">Total Submitted</div>
+              <div class="stat-value tabular-nums" id="stat-total">0</div>
+            </div>
+            <div class="stat-icon">📋</div>
+          </div>
+
+          <div class="stat-card">
+            <div>
+              <div class="stat-label">In Progress / Assigned</div>
+              <div class="stat-value tabular-nums" id="stat-inprogress" style="color: #D97706;">0</div>
+            </div>
+            <div class="stat-icon" style="color: #D97706; background-color: #FFFBEB;">⏳</div>
+          </div>
+
+          <div class="stat-card">
+            <div>
+              <div class="stat-label">Resolved / Closed</div>
+              <div class="stat-value tabular-nums" id="stat-resolved" style="color: var(--teal-accent);">0</div>
+            </div>
+            <div class="stat-icon teal">✓</div>
+          </div>
+
+          <div class="stat-card">
+            <div>
+              <div class="stat-label">Awaiting Feedback</div>
+              <div class="stat-value tabular-nums" id="stat-feedback" style="color: #2563EB;">0</div>
+            </div>
+            <div class="stat-icon" style="color: #2563EB; background-color: #EFF6FF;">⭐</div>
+          </div>
+
+        </div>
+
+        <!-- Recent Reports Table -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Recent Problem Reports</h3>
+              <div class="card-subtitle">Your latest reported infrastructure issues and current repair statuses</div>
+            </div>
+            <a href="/my-reports" class="btn btn-secondary btn-sm">View All Reports &rarr;</a>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Ticket ID</th>
+                  <th>Title & Category</th>
+                  <th>Location</th>
+                  <th>Date</th>
+                  <th>Priority</th>
+                  <th>Status</th>
+                  <th style="text-align: right;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="reports-table-body">
+                <tr>
+                  <td colspan="7" style="text-align: center; padding: 30px; color: var(--text-muted);">
+                    Loading reports...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+
+      </main>
+
+    </div>
+
+  </div>
+
+  <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/components.js') }}"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      // Initialize shared layout
+      await CampusCareUI.initPage("student-dashboard", {
+        pageTitle: "Student & Staff Dashboard",
+        requiredRole: "student"
+      });
+
+      const user = await CampusCareAPI.getCurrentUser();
+      if (!user) return;
+
+      document.getElementById("welcome-title").textContent = `Welcome, ${user.name}`;
+      document.getElementById("welcome-subtitle").textContent = `${user.department || "Campus Member"} · ID: ${user.identifier || user.email}`;
+
+      // Load Statistics
+      const stats = await CampusCareAPI.getStudentStats(user.id);
+      document.getElementById("stat-total").textContent = stats.total;
+      document.getElementById("stat-inprogress").textContent = stats.inProgress;
+      document.getElementById("stat-resolved").textContent = stats.resolved;
+      document.getElementById("stat-feedback").textContent = stats.awaitingFeedback;
+
+      // Load Recent Reports
+      const reports = await CampusCareAPI.getReports({ userId: user.id });
+      const tbody = document.getElementById("reports-table-body");
+
+      if (reports.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7">
+              <div class="empty-state">
+                <div class="empty-icon">📝</div>
+                <div class="empty-title">No reports submitted yet</div>
+                <p style="font-size: 13px; margin-bottom: 16px;">Notice a broken fan, water leak, or network outage? Submit a report now.</p>
+                <a href="/report-problem" class="btn btn-teal btn-sm">Report a Problem</a>
+              </div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      // Show top 5 recent
+      const recent = reports.slice(0, 5);
+      tbody.innerHTML = recent.map(r => `
+        <tr>
+          <td class="ticket-id">${r.id}</td>
+          <td>
+            <div style="font-weight: 600; color: var(--primary-navy);">${r.title}</div>
+            <div class="metadata-line">
+              <span>${r.category}</span>
+            </div>
+          </td>
+          <td>
+            <div style="font-size: 13px;">${r.location.building}</div>
+            <div style="font-size: 11.5px; color: var(--text-muted);">${r.location.floor}, ${r.location.roomArea}</div>
+          </td>
+          <td class="tabular-nums" style="font-size: 12.5px; color: var(--text-muted);">
+            ${CampusCareUI.formatDate(r.createdAt)}
+          </td>
+          <td>
+            ${CampusCareUI.renderPriority(r.priority)}
+          </td>
+          <td>
+            ${CampusCareUI.renderStatusBadge(r.status)}
+            ${(r.status === 'Resolved' || r.status === 'Closed') && !r.feedback ? '<span style="font-size: 10px; color: #2563EB; font-weight: 600; display: block; margin-top: 2px;">Rate repair</span>' : ''}
+          </td>
+          <td style="text-align: right;">
+            <a href="/report-details?id=${r.id}" class="btn btn-secondary btn-sm">
+              View &rarr;
+            </a>
+          </td>
+        </tr>
+      `).join("");
+
+    });
+  </script>
+</body>
+</html>

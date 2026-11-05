@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Feedback & Reviews - Campus Care</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+
+  <div class="app-layout">
+    
+    <div id="app-sidebar"></div>
+
+    <div class="app-main">
+      
+      <div id="app-header"></div>
+
+      <main class="page-content">
+
+        <div style="margin-bottom: 24px;">
+          <h2 style="font-size: 22px; font-weight: 700; color: var(--primary-navy);">Student & Staff Resolution Feedback</h2>
+          <p style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">
+            Inspect post-repair ratings and verification reviews submitted for resolved campus issues
+          </p>
+        </div>
+
+        <!-- Rating Summary Cards -->
+        <div class="stats-grid">
+          
+          <div class="stat-card">
+            <div>
+              <div class="stat-label">Average Satisfaction</div>
+              <div class="stat-value tabular-nums" style="color: #D97706; display: flex; align-items: baseline; gap: 6px;">
+                <span id="fb-avg-rating">0.0</span>
+                <span style="font-size: 14px; color: var(--text-muted); font-weight: 500;">/ 5.0</span>
+              </div>
+            </div>
+            <div class="stat-icon" style="color: #D97706; background-color: #FFFBEB;">★</div>
+          </div>
+
+          <div class="stat-card">
+            <div>
+              <div class="stat-label">Total Verified Reviews</div>
+              <div class="stat-value tabular-nums" id="fb-total-reviews">0</div>
+            </div>
+            <div class="stat-icon teal">✓</div>
+          </div>
+
+          <div class="stat-card">
+            <div>
+              <div class="stat-label">Feedback Policy</div>
+              <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px; line-height: 1.4;">
+                Allowed strictly on <strong>Resolved</strong> or <strong>Closed</strong> issues
+              </div>
+            </div>
+            <div class="stat-icon">🛡️</div>
+          </div>
+
+        </div>
+
+        <!-- Feedback Reviews Ledger -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Recent Feedback Submissions</h3>
+              <div class="card-subtitle">Displaying the latest 5 verified reviews from campus reporters</div>
+            </div>
+          </div>
+
+          <div id="feedback-list-container">
+            <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+              Loading feedback entries...
+            </div>
+          </div>
+
+        </div>
+
+      </main>
+
+    </div>
+
+  </div>
+
+  <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/components.js') }}"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      await CampusCareUI.initPage("feedback", {
+        pageTitle: "Feedback & Satisfaction Reviews",
+        requiredRole: "admin"
+      });
+
+      const stats = await CampusCareAPI.getAdminStats();
+      document.getElementById("fb-avg-rating").textContent = stats.avgRating;
+      document.getElementById("fb-total-reviews").textContent = stats.totalReviews;
+
+      const feedbacks = await CampusCareAPI.getAllFeedback(5);
+      const container = document.getElementById("feedback-list-container");
+
+      if (feedbacks.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">⭐</div>
+            <div class="empty-title">No feedback submitted yet</div>
+            <p style="font-size: 13px;">When student reports are resolved, their post-repair ratings and comments will appear here.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = `
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          ${feedbacks.map(f => {
+            const stars = "★".repeat(f.rating) + "☆".repeat(5 - f.rating);
+            return `
+              <div style="background-color: #F8FAFC; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 18px;">
+                <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 8px;">
+                  <div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <a href="/report-details?id=${f.ticketId}" class="ticket-id" style="font-size: 14px; text-decoration: none;">${f.ticketId}</a>
+                      <span class="metadata-separator">·</span>
+                      <span style="font-weight: 600; color: var(--primary-navy);">${f.title}</span>
+                    </div>
+                    <div class="metadata-line" style="margin-top: 4px;">
+                      <span>Category: ${f.category}</span>
+                      <span class="metadata-separator">·</span>
+                      <span>Reporter: ${f.reportedBy}</span>
+                    </div>
+                  </div>
+
+                  <div style="text-align: right;">
+                    <div style="font-size: 17px; color: #F59E0B; letter-spacing: 1px;">
+                      ${stars}
+                    </div>
+                    <div class="tabular-nums" style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">
+                      ${CampusCareUI.formatDateTime(f.submittedAt)}
+                    </div>
+                  </div>
+                </div>
+
+                <div style="background-color: #FFFFFF; border: 1px solid var(--border-light); border-radius: 4px; padding: 10px 14px; font-size: 13px; color: #334155; line-height: 1.5; margin-top: 10px;">
+                  "${f.comments || "No additional comments provided."}"
+                </div>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      `;
+
+    });
+  </script>
+</body>
+</html>

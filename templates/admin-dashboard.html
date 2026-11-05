@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - Campus Care</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+
+  <div class="app-layout">
+    
+    <div id="app-sidebar"></div>
+
+    <div class="app-main">
+      
+      <div id="app-header"></div>
+
+      <main class="page-content">
+
+        <!-- Top Header & Action -->
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px; margin-bottom: 24px;">
+          <div>
+            <h2 style="font-size: 22px; font-weight: 700; color: var(--primary-navy);" id="admin-welcome-title">Facilities Administration Dashboard</h2>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">
+              Campus infrastructure incident triage, departmental assignments, and resolution oversight
+            </p>
+          </div>
+          <a href="/admin-issues" class="btn btn-primary">
+            <span>🛠️</span> Open Master Issue Manager
+          </a>
+        </div>
+
+        <!-- 4 KPI Summary Cards -->
+        <div class="stats-grid">
+          
+          <div class="stat-card">
+            <div>
+              <div class="stat-label">Total Campus Incidents</div>
+              <div class="stat-value tabular-nums" id="adm-stat-total">0</div>
+            </div>
+            <div class="stat-icon">🏢</div>
+          </div>
+
+          <div class="stat-card">
+            <div>
+              <div class="stat-label">Pending Assignment</div>
+              <div class="stat-value tabular-nums" id="adm-stat-pending" style="color: #DC2626;">0</div>
+            </div>
+            <div class="stat-icon" style="background-color: #FEF2F2; color: #DC2626;">⚠️</div>
+          </div>
+
+          <div class="stat-card">
+            <div>
+              <div class="stat-label">Work In Progress</div>
+              <div class="stat-value tabular-nums" id="adm-stat-progress" style="color: #D97706;">0</div>
+            </div>
+            <div class="stat-icon" style="background-color: #FFFBEB; color: #D97706;">⚙️</div>
+          </div>
+
+          <div class="stat-card">
+            <div>
+              <div class="stat-label">Resolved / Closed</div>
+              <div class="stat-value tabular-nums" id="adm-stat-resolved" style="color: var(--teal-accent);">0</div>
+            </div>
+            <div class="stat-icon teal">✓</div>
+          </div>
+
+        </div>
+
+        <!-- Category Distribution Grid (9 Campus Categories) -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Incidents by Maintenance Category</h3>
+              <div class="card-subtitle">Distribution of filed reports across preconfigured campus departments</div>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;" id="category-distribution-grid">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <!-- Triage Queue Table (Unassigned & Urgent Issues) -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Priority Triage Queue</h3>
+              <div class="card-subtitle">Issues requiring immediate maintenance assignment or workflow review</div>
+            </div>
+            <a href="/admin-issues" class="btn btn-secondary btn-sm">View All Issues &rarr;</a>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Ticket ID</th>
+                  <th>Title & Category</th>
+                  <th>Location</th>
+                  <th>Priority</th>
+                  <th>Assigned Team</th>
+                  <th>Status</th>
+                  <th style="text-align: right;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="admin-triage-tbody">
+                <tr>
+                  <td colspan="7" style="text-align: center; padding: 30px; color: var(--text-muted);">
+                    Loading triage queue...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+
+      </main>
+
+    </div>
+
+  </div>
+
+  <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/components.js') }}"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      await CampusCareUI.initPage("admin-dashboard", {
+        pageTitle: "Admin Facilities Overview",
+        requiredRole: "admin"
+      });
+
+      const user = await CampusCareAPI.getCurrentUser();
+      if (!user) return;
+
+      // Load Statistics
+      const stats = await CampusCareAPI.getAdminStats();
+      document.getElementById("adm-stat-total").textContent = stats.total;
+      document.getElementById("adm-stat-pending").textContent = stats.pendingAssignment;
+      document.getElementById("adm-stat-progress").textContent = stats.assigned + stats.inProgress;
+      document.getElementById("adm-stat-resolved").textContent = stats.resolvedOrClosed;
+
+      // Populate Category Distribution Cards
+      const catContainer = document.getElementById("category-distribution-grid");
+      const categories = await CampusCareAPI.getCategories();
+      
+      catContainer.innerHTML = categories.map(cat => {
+        const count = stats.categoryCounts[cat] || 0;
+        return `
+          <div style="background-color: #F8FAFC; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px 14px; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 13px; font-weight: 500; color: var(--primary-navy);">${cat}</span>
+            <span class="tabular-nums" style="font-size: 14px; font-weight: 700; color: ${count > 0 ? 'var(--teal-accent)' : 'var(--text-muted)'}; background: #FFFFFF; padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border-color);">
+              ${count}
+            </span>
+          </div>
+        `;
+      }).join("");
+
+      // Populate Priority Triage Queue
+      const allReports = await CampusCareAPI.getReports();
+      // Filter for unassigned (status === 'Reported') or Urgent / In Progress
+      const triageList = allReports.filter(r => r.status === "Reported" || r.priority === "urgent" || r.status === "In Progress").slice(0, 6);
+
+      const tbody = document.getElementById("admin-triage-tbody");
+
+      if (triageList.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" style="text-align: center; padding: 30px; color: var(--text-muted);">
+              ✓ No pending triage items. All reported issues are properly assigned.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = triageList.map(r => `
+        <tr>
+          <td class="ticket-id">${r.id}</td>
+          <td>
+            <div style="font-weight: 600; color: var(--primary-navy); max-width: 250px;">${r.title}</div>
+            <div class="metadata-line">
+              <span>${r.category}</span>
+            </div>
+          </td>
+          <td>
+            <div style="font-size: 13px;">${r.location.building}</div>
+            <div style="font-size: 11.5px; color: var(--text-muted);">${r.location.roomArea}</div>
+          </td>
+          <td>${CampusCareUI.renderPriority(r.priority)}</td>
+          <td>
+            ${r.assignedTeam ? `<span style="font-size: 12.5px; font-weight: 500; color: var(--primary-navy);">${r.assignedTeam}</span>` : `<span style="color: #DC2626; font-size: 12px; font-weight: 600;">⚠️ Unassigned</span>`}
+          </td>
+          <td>${CampusCareUI.renderStatusBadge(r.status)}</td>
+          <td style="text-align: right;">
+            <a href="/admin-issues?selectId=${r.id}" class="btn btn-primary btn-sm">Manage &rarr;</a>
+          </td>
+        </tr>
+      `).join("");
+
+    });
+  </script>
+</body>
+</html>

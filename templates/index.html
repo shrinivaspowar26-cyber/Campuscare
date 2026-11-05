@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Campus Care</title>
+  <meta name="description" content="A campus issue-reporting and facilities management portal for students, staff, and facilities administrators.">
+  <meta property="og:title" content="Campus Care">
+  <meta property="og:description" content="A campus issue-reporting and facilities management portal for students, staff, and facilities administrators.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body style="background-color: #F1F5F9; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;">
+
+  <div style="max-width: 680px; width: 100%; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 36px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.07);">
+    
+    <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 20px;">
+      <div style="width: 44px; height: 44px; background-color: #0D9488; color: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 20px;">
+        CC
+      </div>
+      <div>
+        <h1 style="font-size: 22px; font-weight: 700; color: #0F1E36; margin: 0;">Campus Care Portal</h1>
+        <p style="font-size: 13px; color: #64748B; margin: 2px 0 0 0;">University Facilities & Infrastructure Issue Management</p>
+      </div>
+    </div>
+
+    <p style="font-size: 14px; color: #334155; line-height: 1.6; margin-bottom: 24px;">
+      Welcome to <strong>Campus Care</strong>. This web application enables students and university staff to report infrastructure problems, track 5-stage repair workflows, and provide feedback, while providing administrators with oversight and team assignment tools.
+    </p>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+      
+      <div style="border: 1px solid #E2E8F0; border-radius: 8px; padding: 18px; background-color: #F8FAFC;">
+        <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: #0D9488; margin-bottom: 6px;">Student & Staff Portal</div>
+        <p style="font-size: 12.5px; color: #64748B; margin-bottom: 14px;">Report classroom, lab, washroom, or network issues, view ticket status history, and review resolved repairs.</p>
+        <a href="/login?role=student" class="btn btn-teal btn-sm" style="width: 100%;">Enter Student Portal</a>
+      </div>
+
+      <div style="border: 1px solid #E2E8F0; border-radius: 8px; padding: 18px; background-color: #F8FAFC;">
+        <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: #0F1E36; margin-bottom: 6px;">Facilities Admin Portal</div>
+        <p style="font-size: 12.5px; color: #64748B; margin-bottom: 14px;">Manage campus triage queue, assign specialized maintenance teams, update workflow stages, and monitor ratings.</p>
+        <a href="/login?role=admin" class="btn btn-primary btn-sm" style="width: 100%;">Enter Admin Portal</a>
+      </div>
+
+    </div>
+
+    <div style="background-color: #F0FDFA; border: 1px solid #99F6E4; border-radius: 6px; padding: 12px 16px; margin-bottom: 24px; font-size: 12.5px; color: #0F766E;">
+      <strong>Academic Project Information:</strong> Built using vanilla HTML5, CSS3, and JavaScript with an isolated in-memory data layer structured for direct Python Flask & SQLite backend migration.
+    </div>
+
+    <div style="border-top: 1px solid #E2E8F0; padding-top: 16px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #94A3B8;">
+      <span>Workflow: Reported &rarr; Assigned &rarr; In Progress &rarr; Resolved &rarr; Closed</span>
+      <a href="/login" style="font-weight: 600; color: #0D9488;">Go directly to Login &rarr;</a>
+    </div>
+
+  </div>
+
+  <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+  <script>
+    // If user is already authenticated in this session, provide quick redirect option or proceed
+    (async function() {
+      const user = await CampusCareAPI.getCurrentUser();
+      if (user) {
+        if (user.role === 'admin') {
+          window.location.href = '/admin-dashboard';
+        } else {
+          window.location.href = '/student-dashboard';
+        }
+      }
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Campus Care</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body class="auth-wrapper">
+
+  <div class="auth-card">
+    
+    <div class="auth-header">
+      <div class="auth-brand-lockup">
+        <div class="brand-icon">CC</div>
+        <span class="brand-name" style="color: var(--primary-navy); font-size: 20px;">Campus Care</span>
+      </div>
+      <h2 class="auth-title">Welcome Back</h2>
+      <p class="auth-desc">Sign in to your campus facilities portal</p>
+    </div>
+
+    <!-- Role Selection Segmented Control -->
+    <div class="role-segmented-switcher" id="role-selector">
+      <button type="button" class="role-segment-btn active" data-role="student">
+        🎓 Student / Staff
+      </button>
+      <button type="button" class="role-segment-btn" data-role="admin">
+        🛡️ Facilities Admin
+      </button>
+    </div>
+
+    <!-- Feedback alert container -->
+    <div id="login-alert" style="display: none; padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 16px;"></div>
+
+    <form id="login-form">
+      <div class="form-group">
+        <label for="email" class="form-label">Campus Email Address <span class="required">*</span></label>
+        <input 
+          type="email" 
+          id="email" 
+          class="form-control" 
+          placeholder="your.name@campus.edu" 
+          required 
+          autocomplete="email"
+          >
+      </div>
+
+      <div class="form-group">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <label for="password" class="form-label" style="margin-bottom: 0;">Password <span class="required">*</span></label>
+        </div>
+        <div class="password-field-wrap">
+          <input 
+            type="password" 
+            id="password" 
+            class="form-control" 
+            placeholder="Enter your password" 
+            required
+            autocomplete="current-password"
+          >
+          <button type="button" class="password-toggle-btn" id="btn-toggle-password" aria-label="Toggle password visibility">
+            Show
+          </button>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;" id="btn-submit-login">
+        Sign In to Portal
+      </button>
+    </form>
+
+    <div id="register-link-wrap" style="text-align: center; margin-top: 20px; font-size: 13px; color: var(--text-muted);">
+      Don't have an account yet? <a href="/register" style="font-weight: 600; color: var(--teal-accent);">Register here</a>
+    </div>
+
+    <!-- Admin info note (shown only when admin tab is active) -->
+    <div id="admin-info-note" style="display: none; margin-top: 16px; padding: 10px 14px; border-radius: 6px; font-size: 12.5px; background-color: #F8FAFC; border: 1px solid #E2E8F0; color: var(--text-muted);">
+      🛡️ Admin accounts are provisioned by system administration. Contact your institution's IT department or run <code>python create_admin.py</code> to create an admin account.
+    </div>
+
+  </div>
+
+  <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+  <script>
+    let selectedRole = "student";
+
+    // URL parameter check for default role
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get("role") === "admin") {
+      setRole("admin");
+    }
+
+    const roleButtons = document.querySelectorAll(".role-segment-btn");
+    const registerLinkWrap = document.getElementById("register-link-wrap");
+    const adminInfoNote = document.getElementById("admin-info-note");
+    const alertBox = document.getElementById("login-alert");
+    const emailInput = document.getElementById("email");
+    const passwordInput = document.getElementById("password");
+    const togglePasswordBtn = document.getElementById("btn-toggle-password");
+
+    function setRole(role) {
+      selectedRole = role;
+      roleButtons.forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.role === role);
+      });
+
+      if (role === "admin") {
+        registerLinkWrap.style.display = "none";
+        adminInfoNote.style.display = "block";
+      } else {
+        registerLinkWrap.style.display = "block";
+        adminInfoNote.style.display = "none";
+      }
+    }
+
+    roleButtons.forEach(btn => {
+      btn.addEventListener("click", () => {
+        setRole(btn.dataset.role);
+        emailInput.value = "";
+        passwordInput.value = "";
+        hideAlert();
+      });
+    });
+
+    // Password Visibility Toggle
+    togglePasswordBtn.addEventListener("click", () => {
+      if (passwordInput.type === "password") {
+        passwordInput.type = "text";
+        togglePasswordBtn.textContent = "Hide";
+      } else {
+        passwordInput.type = "password";
+        togglePasswordBtn.textContent = "Show";
+      }
+    });
+
+    function showAlert(msg, isError = true) {
+      alertBox.textContent = msg;
+      alertBox.style.display = "block";
+      if (isError) {
+        alertBox.style.backgroundColor = "var(--danger-bg)";
+        alertBox.style.color = "var(--danger-text)";
+        alertBox.style.border = "1px solid var(--danger-border)";
+      } else {
+        alertBox.style.backgroundColor = "var(--teal-light)";
+        alertBox.style.color = "var(--teal-accent-hover)";
+        alertBox.style.border = "1px solid var(--teal-border)";
+      }
+    }
+
+    function hideAlert() {
+      alertBox.style.display = "none";
+    }
+
+    // Login Form Submission
+    document.getElementById("login-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      hideAlert();
+
+      const email = emailInput.value.trim();
+      const password = passwordInput.value;
+
+      try {
+        const user = await CampusCareAPI.login(email, password, selectedRole);
+        showAlert(`Signed in as ${user.name}. Redirecting...`, false);
+        
+        setTimeout(() => {
+          if (user.role === "admin") {
+            window.location.href = "/admin-dashboard";
+          } else {
+            window.location.href = "/student-dashboard";
+          }
+        }, 500);
+
+      } catch (err) {
+        showAlert(err.message, true);
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Reports - Campus Care</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+
+  <div class="app-layout">
+    
+    <div id="app-sidebar"></div>
+
+    <div class="app-main">
+      
+      <div id="app-header"></div>
+
+      <main class="page-content">
+
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px; margin-bottom: 20px;">
+          <div>
+            <h2 style="font-size: 22px; font-weight: 700; color: var(--primary-navy);">My Submitted Reports</h2>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">
+              Filter, search, and monitor all issues filed under your campus account
+            </p>
+          </div>
+          <a href="/report-problem" class="btn btn-teal">
+            <span>+</span> Report New Problem
+          </a>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+          
+          <div class="filter-group" style="flex: 1; min-width: 250px;">
+            <input 
+              type="text" 
+              id="search-input" 
+              class="form-control filter-input" 
+              placeholder="Search by ticket ID, title, or building..."
+            >
+          </div>
+
+          <div class="filter-group">
+            
+            <select id="filter-category" class="form-control" style="width: auto; min-width: 150px;">
+              <option value="All">All Categories</option>
+            </select>
+
+            <select id="filter-status" class="form-control" style="width: auto; min-width: 140px;">
+              <option value="All">All Statuses</option>
+              <option value="Reported">Reported</option>
+              <option value="Assigned">Assigned</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Resolved">Resolved</option>
+              <option value="Closed">Closed</option>
+            </select>
+
+            <button id="btn-clear-filters" class="btn btn-secondary btn-sm" title="Reset search and filters">
+              Clear Filters
+            </button>
+
+          </div>
+
+        </div>
+
+        <!-- Results Counter -->
+        <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px; display: flex; justify-content: space-between;">
+          <span id="results-count">Loading reports...</span>
+          <span>Workflow: Reported &rarr; Assigned &rarr; In Progress &rarr; Resolved &rarr; Closed</span>
+        </div>
+
+        <!-- Reports Table Card -->
+        <div class="card" style="padding: 0; overflow: hidden;">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Ticket ID</th>
+                  <th>Title & Category</th>
+                  <th>Location</th>
+                  <th>Priority</th>
+                  <th>Status</th>
+                  <th>Reported Date</th>
+                  <th>Feedback</th>
+                  <th style="text-align: right;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="my-reports-tbody">
+                <tr>
+                  <td colspan="8" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                    Loading your reports...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </main>
+
+    </div>
+
+  </div>
+
+  <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/components.js') }}"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      await CampusCareUI.initPage("my-reports", {
+        pageTitle: "My Issue Reports",
+        requiredRole: "student"
+      });
+
+      const user = await CampusCareAPI.getCurrentUser();
+      if (!user) return;
+
+      // Populate Category Filter dropdown
+      const categories = await CampusCareAPI.getCategories();
+      const catSelect = document.getElementById("filter-category");
+      categories.forEach(cat => {
+        const opt = document.createElement("option");
+        opt.value = cat;
+        opt.textContent = cat;
+        catSelect.appendChild(opt);
+      });
+
+      const searchInput = document.getElementById("search-input");
+      const statusSelect = document.getElementById("filter-status");
+      const clearBtn = document.getElementById("btn-clear-filters");
+      const tbody = document.getElementById("my-reports-tbody");
+      const countLabel = document.getElementById("results-count");
+
+      async function loadFilteredReports() {
+        const filters = {
+          userId: user.id,
+          search: searchInput.value,
+          category: catSelect.value,
+          status: statusSelect.value
+        };
+
+        const reports = await CampusCareAPI.getReports(filters);
+        countLabel.textContent = `Showing ${reports.length} report${reports.length === 1 ? '' : 's'}`;
+
+        if (reports.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="8">
+                <div class="empty-state">
+                  <div class="empty-icon">🔍</div>
+                  <div class="empty-title">No matching reports found</div>
+                  <p style="font-size: 13px; margin-bottom: 12px;">Try adjusting your search terms or clearing the status/category filter.</p>
+                  <button id="empty-clear-btn" class="btn btn-secondary btn-sm">Reset Filters</button>
+                </div>
+              </td>
+            </tr>
+          `;
+          const emptyClear = document.getElementById("empty-clear-btn");
+          if (emptyClear) {
+            emptyClear.addEventListener("click", resetFilters);
+          }
+          return;
+        }
+
+        tbody.innerHTML = reports.map(r => {
+          let feedbackCol = `<span style="font-size: 12px; color: #94A3B8;">—</span>`;
+          if (r.feedback) {
+            feedbackCol = `<span style="color: #F59E0B; font-weight: 600; font-size: 12px;">★ ${r.feedback.rating}/5</span>`;
+          } else if (r.status === 'Resolved' || r.status === 'Closed') {
+            feedbackCol = `<a href="/report-details?id=${r.id}#feedback-anchor" style="font-size: 11.5px; font-weight: 600; color: #2563EB;">Rate Fix &rarr;</a>`;
+          }
+
+          return `
+            <tr>
+              <td class="ticket-id">${r.id}</td>
+              <td>
+                <div style="font-weight: 600; color: var(--primary-navy); max-width: 260px;">${r.title}</div>
+                <div class="metadata-line">
+                  <span>${r.category}</span>
+                </div>
+              </td>
+              <td>
+                <div style="font-size: 13px;">${r.location.building}</div>
+                <div style="font-size: 11.5px; color: var(--text-muted);">${r.location.floor}, ${r.location.roomArea}</div>
+              </td>
+              <td>${CampusCareUI.renderPriority(r.priority)}</td>
+              <td>${CampusCareUI.renderStatusBadge(r.status)}</td>
+              <td class="tabular-nums" style="font-size: 12.5px; color: var(--text-muted);">${CampusCareUI.formatDate(r.createdAt)}</td>
+              <td>${feedbackCol}</td>
+              <td style="text-align: right;">
+                <a href="/report-details?id=${r.id}" class="btn btn-secondary btn-sm">View &rarr;</a>
+              </td>
+            </tr>
+          `;
+        }).join("");
+      }
+
+      function resetFilters() {
+        searchInput.value = "";
+        catSelect.value = "All";
+        statusSelect.value = "All";
+        loadFilteredReports();
+      }
+
+      // Event Listeners for live filtering
+      searchInput.addEventListener("input", loadFilteredReports);
+      catSelect.addEventListener("change", loadFilteredReports);
+      statusSelect.addEventListener("change", loadFilteredReports);
+      clearBtn.addEventListener("click", resetFilters);
+
+      // Initial load
+      await loadFilteredReports();
+    });
+  </script>
+</body>
+</html>

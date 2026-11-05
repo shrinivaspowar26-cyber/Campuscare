@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Report a Problem - Campus Care</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+
+  <div class="app-layout">
+    
+    <div id="app-sidebar"></div>
+
+    <div class="app-main">
+      
+      <div id="app-header"></div>
+
+      <main class="page-content">
+
+        <div style="max-width: 800px; margin: 0 auto;">
+          
+          <div style="margin-bottom: 24px;">
+            <a href="/student-dashboard" style="font-size: 13px; color: var(--text-muted); display: inline-flex; align-items: center; gap: 4px; margin-bottom: 8px;">
+              &larr; Back to Dashboard
+            </a>
+            <h2 style="font-size: 22px; font-weight: 700; color: var(--primary-navy);">Report a Campus Facility Problem</h2>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">
+              Provide clear details to help our maintenance teams inspect and fix the issue promptly.
+            </p>
+          </div>
+
+          <div class="card">
+            
+            <form id="report-issue-form">
+
+              <!-- Centralized Category Selection (Strict 9 Categories) -->
+              <div class="form-group">
+                <label for="category-select" class="form-label">
+                  Problem Category <span class="required">*</span>
+                </label>
+                <select id="category-select" class="form-control" required>
+                  <option value="" disabled selected>-- Select an issue category --</option>
+                  <!-- Populated dynamically from CampusCareAPI.getCategories() -->
+                </select>
+                <div class="form-hint">Choose the maintenance domain that best matches this incident.</div>
+              </div>
+
+              <!-- Issue Title -->
+              <div class="form-group">
+                <label for="issue-title" class="form-label">
+                  Issue Summary / Title <span class="required">*</span>
+                </label>
+                <input 
+                  type="text" 
+                  id="issue-title" 
+                  class="form-control" 
+                  placeholder="e.g. Broken bench armrest in Lecture Hall 201" 
+                  required
+                  minlength="10"
+                  maxlength="100"
+                >
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+                  <span id="title-hint" class="form-hint" style="margin-top: 0;">10–100 chars, at least 2 words, max 25 chars/word.</span>
+                  <span id="title-char-count" style="font-size: 11.5px; color: var(--text-muted); font-weight: 500;">0/100</span>
+                </div>
+                <div id="title-error-msg" style="display: none; color: #DC2626; font-size: 11.5px; margin-top: 3px; font-weight: 500;"></div>
+              </div>
+
+              <!-- Location Fields Grid -->
+              <div style="background-color: #F8FAFC; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 16px; margin-bottom: 20px;">
+                <div style="font-size: 13px; font-weight: 700; color: var(--primary-navy); margin-bottom: 12px;">
+                  📍 Campus Location Details
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group" style="margin-bottom: 12px;">
+                    <label for="building-input" class="form-label">Building / Block <span class="required">*</span></label>
+                    <input 
+                      type="text" 
+                      id="building-input" 
+                      class="form-control" 
+                      placeholder="e.g. Science Block C, Central Library" 
+                      required
+                    >
+                  </div>
+
+                  <div class="form-group" style="margin-bottom: 12px;">
+                    <label for="floor-input" class="form-label">Floor Level <span class="required">*</span></label>
+                    <select id="floor-input" class="form-control" required>
+                      <option value="Basement">Basement</option>
+                      <option value="Ground Floor" selected>Ground Floor</option>
+                      <option value="1st Floor">1st Floor</option>
+                      <option value="2nd Floor">2nd Floor</option>
+                      <option value="3rd Floor">3rd Floor</option>
+                      <option value="Outdoor / Campus Grounds">Outdoor / Campus Grounds</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label for="room-input" class="form-label">Specific Room / Area / Landmark <span class="required">*</span></label>
+                  <input 
+                    type="text" 
+                    id="room-input" 
+                    class="form-control" 
+                    placeholder="e.g. Room 204 (near south emergency exit)" 
+                    required
+                  >
+                </div>
+              </div>
+
+              <!-- Priority Selector -->
+              <div class="form-group">
+                <label class="form-label">Assessed Urgency / Priority <span class="required">*</span></label>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-top: 6px;">
+                  
+                  <label style="border: 1px solid var(--border-color); padding: 10px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                    <input type="radio" name="priority" value="low">
+                    <span style="font-size: 13px; color: #64748B;">Low (Routine)</span>
+                  </label>
+
+                  <label style="border: 1px solid var(--border-color); padding: 10px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                    <input type="radio" name="priority" value="medium" checked>
+                    <span style="font-size: 13px; color: #2563EB; font-weight: 600;">Medium</span>
+                  </label>
+
+                  <label style="border: 1px solid var(--border-color); padding: 10px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                    <input type="radio" name="priority" value="high">
+                    <span style="font-size: 13px; color: #D97706; font-weight: 600;">High (Disruptive)</span>
+                  </label>
+
+                  <label style="border: 1px solid var(--border-color); padding: 10px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                    <input type="radio" name="priority" value="urgent">
+                    <span style="font-size: 13px; color: #DC2626; font-weight: 700;">Urgent (Safety/Hazard)</span>
+                  </label>
+
+                </div>
+              </div>
+
+              <!-- Detailed Description -->
+              <div class="form-group">
+                <label for="issue-description" class="form-label">
+                  Detailed Description <span class="required">*</span>
+                </label>
+                <textarea 
+                  id="issue-description" 
+                  class="form-control" 
+                  rows="4" 
+                  placeholder="Describe what is wrong, when it started, and any hazards or context that could help the maintenance team." 
+                  required
+                  minlength="20"
+                ></textarea>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+                  <span id="desc-hint" class="form-hint" style="margin-top: 0;">Minimum 20 characters. Be specific about the defect.</span>
+                  <span id="desc-char-count" style="font-size: 11.5px; color: var(--text-muted); font-weight: 500;">0 chars (min 20)</span>
+                </div>
+                <div id="desc-error-msg" style="display: none; color: #DC2626; font-size: 11.5px; margin-top: 3px; font-weight: 500;"></div>
+              </div>
+
+              <!-- Site Photo & Verified Location Section (Take Photo or Upload Photo) -->
+              <div class="form-group" style="background-color: #F8FAFC; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 18px; margin-top: 20px; margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                  <label class="form-label" style="margin-bottom: 0; font-weight: 700; color: var(--primary-navy); font-size: 14px;">
+                    📸 Site Photo & Verified GPS Location <span class="required">*</span>
+                  </label>
+                  <span id="camera-status-pill" style="background: #E2E8F0; color: #475569; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px;">
+                    Photo Required
+                  </span>
+                </div>
+                <div class="form-hint" style="margin-bottom: 12px;">
+                  Every report requires an authentic site photo and verified GPS coordinates. Choose either live camera capture or image file upload.
+                </div>
+
+                <!-- Mode Switcher: Take Photo vs Upload Photo -->
+                <div style="display: flex; gap: 8px; margin-bottom: 14px;" role="tablist">
+                  <button type="button" id="tab-take-photo" class="btn btn-sm btn-primary" style="flex: 1; font-weight: 600; justify-content: center;">
+                    📸 Take Photo (Live Camera)
+                  </button>
+                  <button type="button" id="tab-upload-photo" class="btn btn-sm btn-secondary" style="flex: 1; font-weight: 600; justify-content: center;">
+                    📁 Upload Photo (Gallery / Files)
+                  </button>
+                </div>
+
+                <!-- Insecure Context Warning -->
+                <div id="insecure-context-alert" style="display: none; background: #FEF2F2; border: 1px solid #FECACA; color: #991B1B; padding: 10px 14px; border-radius: 6px; font-size: 12.5px; margin-bottom: 12px;">
+                  ⚠️ <strong>Insecure Context:</strong> Camera and Geolocation access are blocked by browser security unless connected via <strong>HTTPS</strong> or <strong>localhost</strong>.
+                </div>
+
+                <!-- Status / Error Messages Alert -->
+                <div id="capture-status-alert" style="display: none; padding: 10px 14px; border-radius: 6px; font-size: 12.5px; margin-bottom: 12px; line-height: 1.4;"></div>
+
+                <!-- PANEL A: Live Camera Mode -->
+                <div id="camera-panel">
+                  <div id="camera-container" style="background: #0F172A; border-radius: 8px; overflow: hidden; min-height: 240px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative;">
+                    
+                    <!-- State 1: Idle View (Prompt to open camera) -->
+                    <div id="camera-idle-view" style="padding: 36px 16px; text-align: center; color: #94A3B8;">
+                      <div style="font-size: 40px; margin-bottom: 10px;">📷</div>
+                      <div style="font-size: 15px; font-weight: 700; color: #F8FAFC; margin-bottom: 4px;">Camera & GPS Location Required</div>
+                      <p style="font-size: 12.5px; color: #94A3B8; max-width: 340px; margin: 0 auto 16px; line-height: 1.5;">
+                        Open your device camera to take a verified live photo at the incident site.
+                      </p>
+                      <button type="button" class="btn btn-teal" id="btn-start-camera" style="font-size: 13px;">
+                        Open Device Camera
+                      </button>
+                    </div>
+
+                    <!-- State 2: Active Stream View -->
+                    <div id="camera-active-view" style="display: none; width: 100%; position: relative;">
+                      <video id="camera-video" autoplay playsinline muted style="width: 100%; max-height: 420px; background: #000; object-fit: contain; display: block;"></video>
+                      <div style="position: absolute; bottom: 14px; left: 0; right: 0; display: flex; justify-content: center; gap: 10px; z-index: 10; padding: 0 16px;">
+                        <button type="button" class="btn btn-teal" id="btn-snap-photo" style="font-weight: 700; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
+                          📸 Capture Photo & Location
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- State 3: Captured Photo Preview View -->
+                    <div id="camera-captured-view" style="display: none; width: 100%; background: #000; text-align: center;">
+                      <img id="captured-image-preview" src="" alt="Captured site photo preview" style="width: 100%; max-height: 420px; object-fit: contain; display: block;">
+                    </div>
+
+                    <!-- Hidden Canvas for burning geotag overlay and producing JPEG blob -->
+                    <canvas id="capture-canvas" style="display: none;"></canvas>
+                  </div>
+
+                  <!-- Read-Only Geotag Metadata Box (Camera Mode) -->
+                  <div id="geotag-metadata-box" style="display: none; margin-top: 14px; background: #FFFFFF; border: 1px solid var(--border-color); border-radius: 6px; padding: 12px 16px;">
+                    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px;">
+                      <div>
+                        <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.5px;">
+                          Verified Live Geotag
+                        </div>
+                        <div style="font-size: 13.5px; font-weight: 700; color: var(--primary-navy); margin-top: 2px;">
+                          📍 <span id="display-coords">0.000000°, 0.000000°</span>
+                          <span style="font-size: 12px; color: #0D9488; font-weight: 600; margin-left: 6px;" id="display-accuracy">(±0.0 m)</span>
+                        </div>
+                        <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 3px;" id="display-timestamp">
+                          Captured: --
+                        </div>
+                      </div>
+                      <button type="button" class="btn btn-secondary btn-sm" id="btn-retake-photo" style="font-size: 12px;">
+                        🔄 Retake Photo & GPS
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- PANEL B: File Upload Mode -->
+                <div id="upload-panel" style="display: none;">
+                  <input type="file" id="file-upload-input" accept="image/jpeg,image/png" style="display: none;">
+
+                  <!-- Drop / Selection Box -->
+                  <div id="upload-drop-zone" style="border: 2px dashed #CBD5E1; border-radius: 8px; padding: 30px 20px; text-align: center; background: #FFFFFF; cursor: pointer; transition: border-color 0.2s, background 0.2s;">
+                    <div style="font-size: 36px; margin-bottom: 8px;">🖼️</div>
+                    <div style="font-size: 14.5px; font-weight: 700; color: var(--primary-navy); margin-bottom: 4px;">
+                      Choose Photo from Gallery or Files
+                    </div>
+                    <p style="font-size: 12.5px; color: var(--text-muted); margin: 0 auto 12px; max-width: 360px;">
+                      Supported formats: <strong>JPEG, PNG</strong> (Max size: <strong>10MB</strong>).
+                    </p>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btn-choose-file" style="pointer-events: none;">
+                      Browse Device Files
+                    </button>
+                  </div>
+
+                  <!-- Uploaded Photo Preview & Metadata Box -->
+                  <div id="upload-preview-container" style="display: none; margin-top: 14px;">
+                    <div style="background: #0F172A; border-radius: 8px; overflow: hidden; max-height: 380px; text-align: center;">
+                      <img id="upload-image-preview" src="" alt="Uploaded site photo preview" style="width: 100%; max-height: 380px; object-fit: contain; display: block;">
+                    </div>
+
+                    <div style="margin-top: 12px; background: #FFFFFF; border: 1px solid var(--border-color); border-radius: 6px; padding: 14px;">
+                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light);">
+                        <div>
+                          <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Selected File</div>
+                          <div style="font-size: 13px; font-weight: 600; color: var(--primary-navy);" id="upload-filename">photo.jpg</div>
+                        </div>
+                        <button type="button" class="btn btn-secondary btn-sm" id="btn-change-upload-file" style="font-size: 11.5px;">
+                          Change Photo
+                        </button>
+                      </div>
+
+                      <!-- Location Acquisition Block for Upload -->
+                      <div>
+                        <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.5px;">
+                          Submission Site Location (Device GPS)
+                        </div>
+                        <div style="font-size: 12px; color: #1E293B; margin-top: 4px; background: #EFF6FF; border-left: 3px solid #2563EB; padding: 8px 10px; border-radius: 3px; line-height: 1.4;">
+                          ℹ️ Location is your current device location, not read from the photo. Please submit from the issue site.
+                        </div>
+
+                        <div id="upload-location-status" style="margin-top: 10px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px;">
+                          <div>
+                            <div style="font-size: 13px; font-weight: 700; color: var(--primary-navy);" id="upload-display-coords">
+                              📍 Acquiring GPS location...
+                            </div>
+                            <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;" id="upload-display-accuracy">
+                              Please wait...
+                            </div>
+                          </div>
+                          <button type="button" class="btn btn-secondary btn-sm" id="btn-retry-upload-location" style="display: none; font-size: 11.5px;">
+                            🔄 Retry Location
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- Submission Buttons -->
+              <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; border-top: 1px solid var(--border-color); padding-top: 18px;">
+                <a href="/student-dashboard" class="btn btn-secondary">Cancel</a>
+                <button type="submit" class="btn btn-teal" id="btn-submit-report" disabled title="A site photo and verified GPS coordinates are required to submit">
+                  Submit Problem Report
+                </button>
+              </div>
+
+            </form>
+
+          </div>
+
+        </div>
+
+      </main>
+
+    </div>
+
+  </div>
+
+  <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/components.js') }}"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      await CampusCareUI.initPage("report-problem", {
+        pageTitle: "Report a Facility Problem",
+        requiredRole: "student"
+      });
+
+      // Populate Centralized Categories
+      const categories = await CampusCareAPI.getCategories();
+      const catSelect = document.getElementById("category-select");
+
+      categories.forEach(cat => {
+        const opt = document.createElement("option");
+        opt.value = cat;
+        opt.textContent = cat;
+        catSelect.appendChild(opt);
+      });
+
+      // ---------------------------------------------------------------------------
+      // State & Elements
+      // ---------------------------------------------------------------------------
+      let photoSource = "camera"; // 'camera' or 'upload'
+      let activeStream = null;
+      let capturedBlob = null;
+      let capturedLat = null;
+      let capturedLng = null;
+      let capturedAcc = null;
+
+      // Mode Switcher Tabs & Panels
+      const tabTake = document.getElementById("tab-take-photo");
+      const tabUpload = document.getElementById("tab-upload-photo");
+      const cameraPanel = document.getElementById("camera-panel");
+      const uploadPanel = document.getElementById("upload-panel");
+      const statusPill = document.getElementById("camera-status-pill");
+      const alertBox = document.getElementById("capture-status-alert");
+      const insecureAlert = document.getElementById("insecure-context-alert");
+      const submitBtn = document.getElementById("btn-submit-report");
+
+      // Camera Panel Elements
+      const idleView = document.getElementById("camera-idle-view");
+      const activeView = document.getElementById("camera-active-view");
+      const capturedView = document.getElementById("camera-captured-view");
+      const videoEl = document.getElementById("camera-video");
+      const canvasEl = document.getElementById("capture-canvas");
+      const previewImg = document.getElementById("captured-image-preview");
+      const metaBox = document.getElementById("geotag-metadata-box");
+      const coordsSpan = document.getElementById("display-coords");
+      const accuracySpan = document.getElementById("display-accuracy");
+      const timestampSpan = document.getElementById("display-timestamp");
+      const btnStartCamera = document.getElementById("btn-start-camera");
+      const btnSnap = document.getElementById("btn-snap-photo");
+      const btnRetake = document.getElementById("btn-retake-photo");
+
+      // Upload Panel Elements
+      const fileInput = document.getElementById("file-upload-input");
+      const dropZone = document.getElementById("upload-drop-zone");
+      const uploadPreviewContainer = document.getElementById("upload-preview-container");
+      const uploadPreviewImg = document.getElementById("upload-image-preview");
+      const uploadFilenameEl = document.getElementById("upload-filename");
+      const btnChangeUpload = document.getElementById("btn-change-upload-file");
+      const uploadCoordsEl = document.getElementById("upload-display-coords");
+      const uploadAccuracyEl = document.getElementById("upload-display-accuracy");
+      const btnRetryUploadLocation = document.getElementById("btn-retry-upload-location");
+
+      // Form & Text Validation Elements
+      const titleInput = document.getElementById("issue-title");
+      const descInput = document.getElementById("issue-description");
+      const titleCharCount = document.getElementById("title-char-count");
+      const descCharCount = document.getElementById("desc-char-count");
+      const titleErrorMsg = document.getElementById("title-error-msg");
+      const descErrorMsg = document.getElementById("desc-error-msg");
+
+      const TITLE_MIN_CHARS = 10;
+      const TITLE_MAX_CHARS = 100;
+      const TITLE_MIN_WORDS = 2;
+      const MAX_WORD_LENGTH = 25;
+      const MAX_REPEAT_CHARS = 3;
+      const DESCRIPTION_MIN_CHARS = 20;
+
+      function validateTextQualityClient() {
+        const titleVal = (titleInput.value || "").replace(/\s+/g, " ").trim();
+        const descVal = (descInput.value || "").replace(/\s+/g, " ").trim();
+
+        // Update live char counters
+        titleCharCount.textContent = `${titleVal.length}/${TITLE_MAX_CHARS}`;
+        titleCharCount.style.color = (titleVal.length > TITLE_MAX_CHARS || (titleVal.length > 0 && titleVal.length < TITLE_MIN_CHARS)) ? "#DC2626" : "var(--text-muted)";
+
+        descCharCount.textContent = `${descVal.length} chars (min ${DESCRIPTION_MIN_CHARS})`;
+        descCharCount.style.color = (descVal.length > 0 && descVal.length < DESCRIPTION_MIN_CHARS) ? "#DC2626" : "var(--text-muted)";
+
+        let titleErr = null;
+        let descErr = null;
+
+        // Title rules
+        if (titleVal.length > 0) {
+          if (titleVal.length < TITLE_MIN_CHARS) {
+            titleErr = `Title is too short (${titleVal.length}/${TITLE_MIN_CHARS} chars minimum).`;
+          } else if (titleVal.length > TITLE_MAX_CHARS) {
+            titleErr = `Title exceeds limit (${titleVal.length}/${TITLE_MAX_CHARS} chars maximum).`;
+          } else if (titleVal.split(" ").length < TITLE_MIN_WORDS) {
+            titleErr = `Title must contain at least ${TITLE_MIN_WORDS} words (separated by spaces).`;
+          } else if (!/\p{L}/u.test(titleVal)) {
+            titleErr = "Title must contain letters (cannot be only numbers or symbols).";
+          } else {
+            const words = titleVal.split(" ");
+            if (words.some(w => w.length > MAX_WORD_LENGTH)) {
+              titleErr = `Words in title cannot exceed ${MAX_WORD_LENGTH} characters.`;
+            } else {
+              const repeatRe = new RegExp(`(.)\\1{${MAX_REPEAT_CHARS},}`);
+              if (repeatRe.test(titleVal)) {
+                titleErr = `Characters cannot repeat more than ${MAX_REPEAT_CHARS} times in a row.`;
+              }
+            }
+          }
+        }
+
+        // Description rules
+        if (descVal.length > 0) {
+          if (descVal.length < DESCRIPTION_MIN_CHARS) {
+            descErr = `Description is too short (${descVal.length}/${DESCRIPTION_MIN_CHARS} chars minimum).`;
+          } else {
+            const words = descVal.split(" ");
+            if (words.some(w => w.length > MAX_WORD_LENGTH)) {
+              descErr = `Words in description cannot exceed ${MAX_WORD_LENGTH} characters.`;
+            } else {
+              const repeatRe = new RegExp(`(.)\\1{${MAX_REPEAT_CHARS},}`);
+              if (repeatRe.test(descVal)) {
+                descErr = `Characters cannot repeat more than ${MAX_REPEAT_CHARS} times in a row.`;
+              }
+            }
+          }
+        }
+
+        if (titleVal.length > 0 && descVal.length > 0 && titleVal.toLowerCase() === descVal.toLowerCase()) {
+          descErr = "Title and description cannot be identical.";
+        }
+
+        if (titleErr) {
+          titleErrorMsg.textContent = titleErr;
+          titleErrorMsg.style.display = "block";
+        } else {
+          titleErrorMsg.style.display = "none";
+        }
+
+        if (descErr) {
+          descErrorMsg.textContent = descErr;
+          descErrorMsg.style.display = "block";
+        } else {
+          descErrorMsg.style.display = "none";
+        }
+
+        const titleWords = titleVal.length > 0 ? titleVal.split(" ") : [];
+        const descWords = descVal.length > 0 ? descVal.split(" ") : [];
+        const repeatRe = new RegExp(`(.)\\1{${MAX_REPEAT_CHARS},}`);
+
+        const isTitleValid = titleVal.length >= TITLE_MIN_CHARS &&
+                             titleVal.length <= TITLE_MAX_CHARS &&
+                             titleWords.length >= TITLE_MIN_WORDS &&
+                             /\p{L}/u.test(titleVal) &&
+                             !titleWords.some(w => w.length > MAX_WORD_LENGTH) &&
+                             !repeatRe.test(titleVal);
+
+        const isDescValid = descVal.length >= DESCRIPTION_MIN_CHARS &&
+                            !descWords.some(w => w.length > MAX_WORD_LENGTH) &&
+                            !repeatRe.test(descVal) &&
+                            titleVal.toLowerCase() !== descVal.toLowerCase();
+
+        return isTitleValid && isDescValid;
+      }
+
+      titleInput.addEventListener("input", updateSubmitState);
+      descInput.addEventListener("input", updateSubmitState);
+
+      // Check secure context
+      const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+      if (!window.isSecureContext && !isLocalhost) {
+        insecureAlert.style.display = "block";
+      }
+
+      function showAlert(msg, isError = true) {
+        alertBox.style.display = "block";
+        alertBox.style.background = isError ? "#FEF2F2" : "#ECFDF5";
+        alertBox.style.border = isError ? "1px solid #FECACA" : "1px solid #A7F3D0";
+        alertBox.style.color = isError ? "#991B1B" : "#065F46";
+        alertBox.innerHTML = msg;
+      }
+
+      function hideAlert() {
+        alertBox.style.display = "none";
+        alertBox.innerHTML = "";
+      }
+
+      function stopCamera() {
+        if (activeStream) {
+          activeStream.getTracks().forEach(track => track.stop());
+          activeStream = null;
+        }
+        if (videoEl) {
+          videoEl.srcObject = null;
+        }
+      }
+
+      window.addEventListener("beforeunload", stopCamera);
+      window.addEventListener("pagehide", stopCamera);
+
+      function updateSubmitState() {
+        const textValid = validateTextQualityClient();
+        const photoValid = Boolean(capturedBlob && capturedLat !== null && capturedLng !== null);
+        const isValid = textValid && photoValid;
+        submitBtn.disabled = !isValid;
+
+        if (isValid) {
+          submitBtn.removeAttribute("title");
+          statusPill.textContent = photoSource === "camera" ? "Live Photo & GPS Ready ✓" : "Uploaded Photo & GPS Ready ✓";
+          statusPill.style.background = "#D1FAE5";
+          statusPill.style.color = "#065F46";
+        } else {
+          if (!textValid && !photoValid) {
+            submitBtn.title = "Complete valid title, description, site photo, and GPS location to submit";
+          } else if (!textValid) {
+            submitBtn.title = "Please meet all title and description requirements to submit";
+          } else {
+            submitBtn.title = "A site photo and verified GPS coordinates are required to submit";
+          }
+          statusPill.textContent = photoValid ? "Photo Ready (Check Text)" : "Photo Required";
+          statusPill.style.background = photoValid ? "#FEF3C7" : "#E2E8F0";
+          statusPill.style.color = photoValid ? "#92400E" : "#475569";
+        }
+      }
+
+      // ---------------------------------------------------------------------------
+      // Mode Switching (Take Photo vs Upload Photo)
+      // ---------------------------------------------------------------------------
+      function switchMode(newMode) {
+        if (photoSource === newMode) return;
+
+        // Stop camera stream if running
+        stopCamera();
+
+        // Clear captured data on mode switch so only one photo exists at a time
+        capturedBlob = null;
+        capturedLat = null;
+        capturedLng = null;
+        capturedAcc = null;
+        hideAlert();
+
+        photoSource = newMode;
+
+        if (photoSource === "camera") {
+          tabTake.className = "btn btn-sm btn-primary";
+          tabUpload.className = "btn btn-sm btn-secondary";
+          cameraPanel.style.display = "block";
+          uploadPanel.style.display = "none";
+
+          idleView.style.display = "block";
+          activeView.style.display = "none";
+          capturedView.style.display = "none";
+          metaBox.style.display = "none";
+        } else {
+          tabUpload.className = "btn btn-sm btn-primary";
+          tabTake.className = "btn btn-sm btn-secondary";
+          uploadPanel.style.display = "block";
+          cameraPanel.style.display = "none";
+
+          // Reset upload UI
+          fileInput.value = "";
+          uploadPreviewContainer.style.display = "none";
+          dropZone.style.display = "block";
+        }
+
+        updateSubmitState();
+      }
+
+      tabTake.addEventListener("click", () => switchMode("camera"));
+      tabUpload.addEventListener("click", () => switchMode("upload"));
+
+      // ---------------------------------------------------------------------------
+      // Flow 1: Live Camera Capture
+      // ---------------------------------------------------------------------------
+      async function startCamera() {
+        hideAlert();
+
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          showAlert("Camera API is not supported by your browser or connection is not secure (requires HTTPS / localhost).");
+          return;
+        }
+
+        try {
+          try {
+            activeStream = await navigator.mediaDevices.getUserMedia({
+              video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } }
+            });
+          } catch (envErr) {
+            activeStream = await navigator.mediaDevices.getUserMedia({ video: true });
+          }
+
+          videoEl.srcObject = activeStream;
+          await videoEl.play();
+
+          idleView.style.display = "none";
+          capturedView.style.display = "none";
+          activeView.style.display = "block";
+          metaBox.style.display = "none";
+
+          statusPill.textContent = "Live Camera Active";
+          statusPill.style.background = "#EFF6FF";
+          statusPill.style.color = "#1D4ED8";
+        } catch (err) {
+          stopCamera();
+          let errMessage = "Could not access device camera.";
+          if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
+            errMessage = "Camera permission denied. Please allow camera access in your browser settings to report issues.";
+          } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
+            errMessage = "No camera hardware detected on this device.";
+          } else if (err.name === "NotReadableError" || err.name === "TrackStartError") {
+            errMessage = "Camera hardware is currently in use by another application.";
+          } else {
+            errMessage = `Camera error: ${err.message || err.name}`;
+          }
+          showAlert(errMessage);
+          statusPill.textContent = "Camera Error";
+          statusPill.style.background = "#FEF2F2";
+          statusPill.style.color = "#991B1B";
+        }
+      }
+
+      btnStartCamera.addEventListener("click", startCamera);
+
+      btnSnap.addEventListener("click", async () => {
+        if (!activeStream || !videoEl.videoWidth) {
+          showAlert("Camera stream is not ready. Please wait a moment and try again.");
+          return;
+        }
+
+        hideAlert();
+        btnSnap.disabled = true;
+        btnSnap.textContent = "Acquiring GPS & Capturing...";
+
+        if (!navigator.geolocation) {
+          showAlert("Geolocation is not supported by this browser.");
+          btnSnap.disabled = false;
+          btnSnap.textContent = "📸 Capture Photo & Location";
+          return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+          async (pos) => {
+            capturedLat = pos.coords.latitude;
+            capturedLng = pos.coords.longitude;
+            capturedAcc = pos.coords.accuracy || 0;
+
+            const width = videoEl.videoWidth || 1280;
+            const height = videoEl.videoHeight || 720;
+            canvasEl.width = width;
+            canvasEl.height = height;
+
+            const ctx = canvasEl.getContext("2d");
+            ctx.drawImage(videoEl, 0, 0, width, height);
+
+            // Burn GPS & Timestamp text overlay on live camera capture
+            const bannerHeight = Math.max(54, Math.round(height * 0.085));
+            ctx.fillStyle = "rgba(15, 23, 42, 0.78)";
+            ctx.fillRect(0, height - bannerHeight, width, bannerHeight);
+
+            const fontSize = Math.max(15, Math.round(bannerHeight * 0.32));
+            ctx.font = `700 ${fontSize}px sans-serif`;
+            ctx.fillStyle = "#FFFFFF";
+            ctx.textBaseline = "middle";
+
+            const now = new Date();
+            const timeStr = now.toLocaleString();
+            const line1 = `📍 ${capturedLat.toFixed(6)}°, ${capturedLng.toFixed(6)}° (±${capturedAcc.toFixed(1)}m)`;
+            const line2 = `🕒 ${timeStr} | Campus Care Live Site Verification`;
+
+            ctx.fillText(line1, 16, height - bannerHeight + (bannerHeight * 0.33));
+            ctx.font = `500 ${Math.max(12, Math.round(fontSize * 0.82))}px sans-serif`;
+            ctx.fillStyle = "#E2E8F0";
+            ctx.fillText(line2, 16, height - bannerHeight + (bannerHeight * 0.72));
+
+            canvasEl.toBlob((blob) => {
+              if (!blob) {
+                showAlert("Failed to create photo image blob.");
+                btnSnap.disabled = false;
+                btnSnap.textContent = "📸 Capture Photo & Location";
+                return;
+              }
+
+              capturedBlob = blob;
+              stopCamera();
+
+              previewImg.src = URL.createObjectURL(blob);
+              coordsSpan.textContent = `${capturedLat.toFixed(6)}°, ${capturedLng.toFixed(6)}°`;
+              accuracySpan.textContent = `(±${capturedAcc.toFixed(1)} m)`;
+              timestampSpan.textContent = `Captured: ${timeStr}`;
+
+              activeView.style.display = "none";
+              capturedView.style.display = "block";
+              metaBox.style.display = "block";
+
+              btnSnap.disabled = false;
+              btnSnap.textContent = "📸 Capture Photo & Location";
+              updateSubmitState();
+            }, "image/jpeg", 0.92);
+          },
+          (geoErr) => {
+            btnSnap.disabled = false;
+            btnSnap.textContent = "📸 Capture Photo & Location";
+
+            let msg = "Could not retrieve GPS location.";
+            if (geoErr.code === 1) {
+              msg = "Location permission denied. GPS coordinates are required to submit a verified site report.";
+            } else if (geoErr.code === 2) {
+              msg = "Location unavailable. Please make sure location services are turned on on your device.";
+            } else if (geoErr.code === 3) {
+              msg = "Location acquisition timed out. Please try again in an area with a clear signal.";
+            }
+            showAlert(msg);
+            updateSubmitState();
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+          }
+        );
+      });
+
+      btnRetake.addEventListener("click", () => {
+        capturedBlob = null;
+        capturedLat = null;
+        capturedLng = null;
+        capturedAcc = null;
+
+        updateSubmitState();
+        metaBox.style.display = "none";
+        capturedView.style.display = "none";
+        startCamera();
+      });
+
+      // ---------------------------------------------------------------------------
+      // Flow 2: File Upload (Gallery / Files)
+      // ---------------------------------------------------------------------------
+      dropZone.addEventListener("click", () => fileInput.click());
+      btnChangeUpload.addEventListener("click", () => fileInput.click());
+
+      // Drag and drop handlers
+      dropZone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = "#0D9488";
+        dropZone.style.background = "#F0FDFA";
+      });
+      dropZone.addEventListener("dragleave", () => {
+        dropZone.style.borderColor = "#CBD5E1";
+        dropZone.style.background = "#FFFFFF";
+      });
+      dropZone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = "#CBD5E1";
+        dropZone.style.background = "#FFFFFF";
+        if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+          handleSelectedFile(e.dataTransfer.files[0]);
+        }
+      });
+
+      fileInput.addEventListener("change", (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+          handleSelectedFile(e.target.files[0]);
+        }
+      });
+
+      function handleSelectedFile(file) {
+        hideAlert();
+
+        // 1. Validate file format
+        const validTypes = ["image/jpeg", "image/png"];
+        const lowerName = file.name.toLowerCase();
+        const hasValidExt = lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg") || lowerName.endsWith(".png");
+
+        if (!validTypes.includes(file.type) && !hasValidExt) {
+          showAlert("Invalid file format. Only JPEG and PNG images are allowed.");
+          fileInput.value = "";
+          capturedBlob = null;
+          updateSubmitState();
+          return;
+        }
+
+        // 2. Validate file size (10MB maximum)
+        const maxBytes = 10 * 1024 * 1024;
+        if (file.size > maxBytes) {
+          showAlert("File size exceeds 10MB limit. Please select a smaller photo.");
+          fileInput.value = "";
+          capturedBlob = null;
+          updateSubmitState();
+          return;
+        }
+
+        if (file.size === 0) {
+          showAlert("Selected file is empty.");
+          fileInput.value = "";
+          capturedBlob = null;
+          updateSubmitState();
+          return;
+        }
+
+        capturedBlob = file;
+        uploadFilenameEl.textContent = `${file.name} (${(file.size / (1024 * 1024)).toFixed(2)} MB)`;
+        uploadPreviewImg.src = URL.createObjectURL(file);
+
+        dropZone.style.display = "none";
+        uploadPreviewContainer.style.display = "block";
+
+        // Trigger immediate geolocation capture for upload mode
+        acquireUploadLocation();
+      }
+
+      function acquireUploadLocation() {
+        uploadCoordsEl.textContent = "📍 Acquiring GPS location...";
+        uploadAccuracyEl.textContent = "Please ensure location services are enabled.";
+        btnRetryUploadLocation.style.display = "none";
+        hideAlert();
+
+        if (!navigator.geolocation) {
+          uploadCoordsEl.textContent = "⚠️ Geolocation not supported";
+          uploadAccuracyEl.textContent = "This browser cannot acquire location.";
+          showAlert("Geolocation is not supported by your browser.");
+          updateSubmitState();
+          return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            capturedLat = pos.coords.latitude;
+            capturedLng = pos.coords.longitude;
+            capturedAcc = pos.coords.accuracy || 0;
+
+            uploadCoordsEl.textContent = `📍 ${capturedLat.toFixed(6)}°, ${capturedLng.toFixed(6)}°`;
+            uploadAccuracyEl.textContent = `Accuracy: ±${capturedAcc.toFixed(1)} meters (Verified)`;
+            btnRetryUploadLocation.style.display = "none";
+
+            updateSubmitState();
+          },
+          (geoErr) => {
+            capturedLat = null;
+            capturedLng = null;
+            capturedAcc = null;
+
+            let msg = "Could not acquire current GPS location.";
+            if (geoErr.code === 1) {
+              msg = "Location permission denied. GPS coordinates are required to submit an issue report.";
+            } else if (geoErr.code === 2) {
+              msg = "Location unavailable. Please verify GPS / location services are active.";
+            } else if (geoErr.code === 3) {
+              msg = "Location request timed out. Please try again with a better signal.";
+            }
+
+            uploadCoordsEl.textContent = "⚠️ Location acquisition failed";
+            uploadAccuracyEl.textContent = msg;
+            btnRetryUploadLocation.style.display = "inline-block";
+            showAlert(msg);
+            updateSubmitState();
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+          }
+        );
+      }
+
+      btnRetryUploadLocation.addEventListener("click", acquireUploadLocation);
+
+      // ---------------------------------------------------------------------------
+      // Form Submission
+      // ---------------------------------------------------------------------------
+      const form = document.getElementById("report-issue-form");
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        if (!capturedBlob || capturedLat === null || capturedLng === null) {
+          showAlert("A site photo and verified GPS coordinates are required before submitting.");
+          return;
+        }
+
+        const selectedPriority = document.querySelector('input[name="priority"]:checked').value;
+
+        const formData = new FormData();
+        formData.append("title", document.getElementById("issue-title").value.trim());
+        formData.append("category", catSelect.value);
+        formData.append("building", document.getElementById("building-input").value.trim());
+        formData.append("floor", document.getElementById("floor-input").value);
+        formData.append("roomArea", document.getElementById("room-input").value.trim());
+        formData.append("priority", selectedPriority);
+        formData.append("description", document.getElementById("issue-description").value.trim());
+        formData.append("photo_source", photoSource);
+        formData.append("image", capturedBlob, photoSource === "camera" ? "camera_photo.jpg" : (capturedBlob.name || "uploaded_photo.jpg"));
+        formData.append("latitude", capturedLat);
+        formData.append("longitude", capturedLng);
+        formData.append("location_accuracy", capturedAcc);
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Submitting Report...";
+
+        try {
+          const created = await CampusCareAPI.createReport(formData);
+          CampusCareUI.toast(`Issue ticket ${created.id} submitted successfully!`, "success");
+
+          setTimeout(() => {
+            window.location.href = `/report-details?id=${created.id}`;
+          }, 800);
+        } catch (err) {
+          CampusCareUI.toast(err.message, "error");
+          showAlert(err.message);
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Submit Problem Report";
+        }
+      });
+    });
+  </script>
+</body>
+</html>

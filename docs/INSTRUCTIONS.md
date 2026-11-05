@@ -1,0 +1,25 @@
+# Instructions for AI Coding Agent
+
+- Read `PROJECT_CONTEXT.md`, `PROGRESS.md`, and `IMPLEMENTATION_PLAN.md` before starting work.
+- Follow the existing project structure.
+- Use only HTML, CSS, vanilla JavaScript, Python, Flask, and SQLite unless explicitly approved.
+- Do not add unnecessary libraries, frameworks, or features.
+- Keep code simple, readable, and beginner-friendly.
+- Do not rewrite working code without a clear reason.
+- Make small, focused changes.
+- Do not build features outside the project scope.
+- Never treat frontend role selection as authorization. Verify permissions on the server.
+- Hash passwords. Never store plain-text passwords.
+- Validate inputs on both frontend and backend.
+- Use parameterized SQL queries.
+- Protect authenticated routes and user data.
+- Do not leave fake data in place of real database functionality in completed features.
+- Do not claim a feature works without testing it.
+- Run relevant checks after every meaningful change.
+- Fix errors caused by your changes before moving on.
+- Update `PROGRESS.md` after completing a meaningful task.
+- Update other documentation when project decisions change.
+- If requirements are unclear, ask before making major assumptions.
+- Do not change the technology stack or project scope without approval.
+- At the end of each task, report what changed, what was tested, any remaining issues, and the next task.
+- Stop when the requested task is complete. Do not continue adding features.

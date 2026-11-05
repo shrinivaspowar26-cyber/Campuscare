@@ -1,0 +1,3 @@
+login.png = /login
+usedashboard.png = /dashboard
+admin.png = /admin
